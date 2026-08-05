@@ -94,6 +94,12 @@ jobs:
     # in repo secrets. This makes accidental deploys impossible while the
     # project is still under development.
     needs: build-and-test
+    # DEPLOY_ENABLED is mapped from a repo secret into an env var because the
+    # `secrets` context is not available inside `if:` conditions (GitHub
+    # disallows it). Map the secret to job `env`, then reference env.<VAR>
+    # in the condition below.
+    env:
+      DEPLOY_ENABLED: ${{ secrets.DEPLOY_ENABLED }}
     # Deploy only when explicitly requested:
     #   - manual run of this workflow with the deploy input set to 'true', OR
     #   - a push to main while the DEPLOY_ENABLED repo secret is set to 'true'.
@@ -106,7 +112,7 @@ jobs:
         ||
         (github.event_name == 'push' &&
          github.ref == 'refs/heads/main' &&
-         secrets.DEPLOY_ENABLED == 'true')
+          env.DEPLOY_ENABLED == 'true')
       )
     runs-on: ubuntu-latest
     timeout-minutes: 30
