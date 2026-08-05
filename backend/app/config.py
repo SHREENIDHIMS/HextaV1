@@ -12,6 +12,7 @@ change to them has to pass the evaluation benchmark gate first
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -92,6 +93,18 @@ class Settings(BaseSettings):
             raise ValueError(
                 "HEXA_JWT_SECRET must be set to a strong, unique value in "
                 "non-development environments (the bundled default is dev-only)."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _anchor_nlp_directories(self) -> "Settings":
+        """Anchor relative ``nlp_models/*`` paths to the repo root so they
+        resolve regardless of the process cwd — the benchmark runs from the
+        repo root, the dev ``uvicorn`` server runs from ``backend/``. Storage
+        paths stay backend-relative per the docs."""
+        if self.rerank_model_dir and not Path(self.rerank_model_dir).is_absolute():
+            self.rerank_model_dir = str(
+                Path(__file__).resolve().parents[2] / self.rerank_model_dir
             )
         return self
 

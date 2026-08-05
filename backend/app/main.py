@@ -44,6 +44,32 @@ def _warm_embedding_model() -> None:
         logger.exception("Embedding model warm-up failed; falling back to lazy load")
 
 
+def _warm_reranker() -> None:
+    """Pre-load and pre-warm the cross-encoder reranker at startup.
+
+    Pays the one-time ONNX session construction + first-Run graph-optimization
+    cost HERE, before uvicorn starts accepting requests, so a cold first rerank
+    call cannot breach the <200ms p95 latency budget (CLAUD.md rule 6). Unlike
+    the embedding warm-up this is synchronous on purpose: a cold first rerank
+    call (~330ms) would otherwise violate the hard budget on the very first
+    user request. The warm itself is ~100-150ms so it does not materially delay
+    readiness. Non-fatal if the model is absent or fails — reranking then stays
+    lazy on first use.
+    """
+    if not settings.rerank_enabled:
+        return
+    try:
+        from app.ranking.reranker import _get_reranker, _model_available
+
+        if not _model_available(settings.rerank_model_dir):
+            logger.warning("Reranker enabled but no model found in %s; skipping warm-up", settings.rerank_model_dir)
+            return
+        _get_reranker().score("warmup query", ["warmup passage"])
+        logger.info("Reranker model warmed up")
+    except Exception:
+        logger.exception("Reranker warm-up failed; falling back to lazy load on first rerank")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Idempotent schema creation on startup; pool cleanup on shutdown."""
@@ -53,6 +79,10 @@ async def lifespan(app: FastAPI):
     # first real search doesn't pay the one-time model-load latency.
     if settings.embedding_enabled:
         threading.Thread(target=_warm_embedding_model, daemon=True).start()
+    # Eagerly warm the reranker before serving so a cold first rerank call
+    # can't breach the <200ms p95 gate (CLAUDE.md rule 6).
+    if settings.rerank_enabled:
+        _warm_reranker()
     yield
     from app.db.postgres.session import _pool
 

@@ -22,13 +22,14 @@ import time
 from functools import lru_cache
 from typing import Sequence
 
+import numpy as np
+
 from app.config import settings
 from app.ranking.rrf import RankedCandidate
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_BUDGET_MS = 200.0
-_PAIRED_FORMAT = "{} [SEP] {}"
 
 _warned_missing_model = False
 
@@ -74,27 +75,46 @@ class CrossEncoderReranker:
 
         self._session = ort.InferenceSession(
             os.path.join(model_dir, "model.onnx"),
-            providers=ort.get_available_providers(),
+            # CPU-only: AzureExecutionProvider (if advertised) is non-functional
+            # on self-hosted hosts and adds overhead. Deterministic CPU path.
+            providers=["CPUExecutionProvider"],
         )
         self._tokenizer = Tokenizer.from_file(os.path.join(model_dir, "tokenizer.json"))
+        # Truncate long passages so a single top-K rerank call stays within the
+        # <200ms p95 latency budget (CLAUDE.md rule 6). Relevance signal lives in
+        # the passage head (answer sentence), so 128 tokens is sufficient.
+        self._tokenizer.enable_truncation(max_length=128)
 
     def score(self, query: str, passages: Sequence[str]) -> list[float]:
         """Return a relevance score per passage, order-preserving."""
         if not passages:
             return []
-        inputs = self._tokenizer.encode_batch(
-            [_PAIRED_FORMAT.format(query, p) for p in passages]
+        encodings = self._tokenizer.encode_batch(
+            [(query, p) for p in passages]
         )
-        text_ids = [e.ids for e in inputs]
-        attention = [e.attention_mask for e in inputs]
-        token_type = getattr(inputs[0], "type_ids", None)
+        max_len = max(len(e.ids) for e in encodings)
+        text_ids = np.array([e.ids + [0] * (max_len - len(e.ids)) for e in encodings])
+        attention = np.array(
+            [e.attention_mask + [0] * (max_len - len(e.attention_mask)) for e in encodings]
+        )
+        token_type = getattr(encodings[0], "type_ids", None)
 
-        feed = {self._session.get_inputs()[0].name: text_ids}
-        for inp in self._session.get_inputs()[1:]:
-            if inp.name.endswith("attention_mask") or "attention_mask" in inp.name:
+        in_pts = self._session.get_inputs()
+        feed = {in_pts[0].name: text_ids}
+        for inp in in_pts[1:]:
+            if "attention" in inp.name:
                 feed[inp.name] = attention
-            elif token_type is not None and ("token" in inp.name or "type" in inp.name):
-                feed[inp.name] = [getattr(e, "type_ids", [0] * len(e.ids)) for e in inputs]
+            elif "type" in inp.name:
+                if token_type is not None:
+                    feed[inp.name] = np.array(
+                        [
+                            getattr(e, "type_ids", [0] * len(e.ids))
+                            + [0] * (max_len - len(getattr(e, "type_ids", [0] * len(e.ids))))
+                            for e in encodings
+                        ]
+                    )
+                else:
+                    feed[inp.name] = np.zeros_like(text_ids)
 
         scores = self._session.run(None, feed)[0].tolist()
         # Squash logits to (0,1) when the model returns raw logits.

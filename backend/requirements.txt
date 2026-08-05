@@ -9,6 +9,7 @@ PyJWT==2.13.0
 bcrypt==5.0.0
 fastembed==0.8.0
 onnxruntime==1.28.0
+tokenizers==0.23.1  # used by app.ranking.reranker (CPU cross-encoder tokenizer)
 loguru==0.7.3
 RapidFuzz==3.14.5
 python-multipart==0.0.32
