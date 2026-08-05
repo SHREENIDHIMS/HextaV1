@@ -1,0 +1,287 @@
+{
+  "timestamp": "2026-08-05T20:14:05.175570+00:00",
+  "dataset": "retrieval_benchmark",
+  "dataset_size": 12,
+  "config": {
+    "rerank_enabled": false,
+    "rerank_budget_ms": 200.0,
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "db": "127.0.0.1:5433",
+    "max_results": 100
+  },
+  "queries": [
+    {
+      "id": 1,
+      "question": "what is the minimum credit score for a conventional loan",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what is the minimum credit score for a conventional loan"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "latency_ms": 30.68
+    },
+    {
+      "id": 2,
+      "question": "what credit score gets the best rates",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what credit score get the best rates interest rate"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "latency_ms": 20.83
+    },
+    {
+      "id": 3,
+      "question": "what is the minimum credit score for a jumbo loan",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": 37,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Credit Score Requirements for Mortgages",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the minimum credit score for a jumbo loan"
+      ],
+      "or_rank": 1,
+      "and_rank": 2,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 23.48
+    },
+    {
+      "id": 4,
+      "question": "what are the mortgage approval requirements",
+      "expected_doc": "Mortgage Approval Requirements",
+      "gold_chunk_id": 13,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Mortgage Approval Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what are the mortgage approval requirements"
+      ],
+      "or_rank": 2,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 20.96
+    },
+    {
+      "id": 5,
+      "question": "what is the minimum down payment for an fha loan",
+      "expected_doc": "FHA vs Conventional Loan Comparison",
+      "gold_chunk_id": 47,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "FHA vs Conventional Loan Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the minimum down payment for an fha loan federal housing administration"
+      ],
+      "or_rank": 2,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 30.38
+    },
+    {
+      "id": 6,
+      "question": "what is the maximum ltv for a conventional loan",
+      "expected_doc": "Mortgage Approval Requirements",
+      "gold_chunk_id": 13,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Mortgage Approval Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the maximum ltv for a conventional loan loan to value"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 25.54
+    },
+    {
+      "id": 7,
+      "question": "what is the maximum debt to income ratio",
+      "expected_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_chunk_id": 17,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the maximum debt to income ratio"
+      ],
+      "or_rank": 7,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 1
+      },
+      "latency_ms": 21.54
+    },
+    {
+      "id": 8,
+      "question": "how is the dti ratio calculated",
+      "expected_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_chunk_id": 16,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "how is the dti ratio calculated debt to income"
+      ],
+      "or_rank": 4,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 19.64
+    },
+    {
+      "id": 9,
+      "question": "what are typical closing costs",
+      "expected_doc": "Closing Costs and Fees Overview",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what are typical closing costs"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "latency_ms": 20.3
+    },
+    {
+      "id": 10,
+      "question": "what is an appraisal fee",
+      "expected_doc": "Closing Costs and Fees Overview",
+      "gold_chunk_id": 26,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Overview",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is an appraisal fee"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 18.17
+    },
+    {
+      "id": 11,
+      "question": "what is the loan estimate",
+      "expected_doc": "Closing Costs and Fees Overview",
+      "gold_chunk_id": 34,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Overview",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the loan estimate"
+      ],
+      "or_rank": 2,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 18.76
+    },
+    {
+      "id": 12,
+      "question": "what is the difference between fha and conventional loans",
+      "expected_doc": "FHA vs Conventional Loan Comparison",
+      "gold_chunk_id": 48,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "FHA vs Conventional Loan Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the difference between fha and conventional loans federal housing administration"
+      ],
+      "or_rank": 4,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "latency_ms": 21.4
+    }
+  ],
+  "summary": {
+    "denominator": 9,
+    "gold_not_found_total": 3,
+    "gold_not_found_ids": [
+      1,
+      2,
+      9
+    ],
+    "gold_not_found_reason": "answer phrase not verbatim in any chunk (chunker split/reword)",
+    "recall_at_1": 0.3333,
+    "recall_at_5": 0.8889,
+    "recall_at_10": 1.0,
+    "mrr_10": 0.5714,
+    "retrieval_rate_or": 1.0,
+    "retrieval_rate_and": 0.4444,
+    "and_operator_misses_over_findable": 5,
+    "mrr_or": 0.5714,
+    "mrr_and": 0.3889,
+    "mean_latency_ms": 22.64,
+    "p95_latency_ms": 30.68
+  }
+}
