@@ -1,0 +1,15 @@
+{
+  "manifest_version": 1,
+  "id": "hexa.va-helper",
+  "name": "VA Loan Helper",
+  "version": "1.2.0",
+  "kind": "extension",
+  "entry": "src/listeners.js",
+  "auth": { "flow": "bearer" },
+  "hooks": {
+    "search.completed": "listeners.onSearchCompleted",
+    "feedback.received": "listeners.onFeedback",
+    "no_answer": "listeners.onNoAnswer"
+  },
+  "permissions": ["search", "feedback"]
+}

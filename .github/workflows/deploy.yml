@@ -1,0 +1,166 @@
+name: Deploy
+
+on:
+  # Deploy is intentionally gated. Building/testing runs automatically on
+  # every push to main, but the EC2 deploy step only fires when this
+  # workflow is run manually with the "Deploy now" option, or when
+  # `secrets.DEPLOY_ENABLED` is set to "true".
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy built artifacts to EC2"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-cov pytest-timeout
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: |
+          npx tsc --noEmit
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: |
+          npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm run build
+
+      - name: Run unit tests
+        env:
+          HEXA_JWT_SECRET: dev-only-secret-change-me-in-production-32chars
+          HEXA_ENVIRONMENT: development
+        run: |
+          cd backend
+          python -m pytest tests/unit/ -v --timeout=60
+
+      # Upload the built frontend + backend source as a single artifact so
+      # the (manual) deploy job can publish them without rebuilding.
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hexa-frontend
+          path: frontend/out
+          if-no-files-found: error
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hexa-backend
+          path: backend
+          if-no-files-found: error
+
+  deploy:
+    # Real EC2 deployment. Only runs when explicitly requested — either a
+    # manual `workflow_dispatch` with deploy=true, or DEPLOY_ENABLED=true
+    # in repo secrets. This makes accidental deploys impossible while the
+    # project is still under development.
+    needs: build-and-test
+    # Deploy only when explicitly requested:
+    #   - manual run of this workflow with the deploy input set to 'true', OR
+    #   - a push to main while the DEPLOY_ENABLED repo secret is set to 'true'.
+    # Grouped with explicit parentheses to avoid precedence surprises.
+    if: |
+      !cancelled() &&
+      (
+        (github.event_name == 'workflow_dispatch' &&
+         github.event.inputs.deploy == 'true')
+        ||
+        (github.event_name == 'push' &&
+         github.ref == 'refs/heads/main' &&
+         secrets.DEPLOY_ENABLED == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hexa-frontend
+          path: frontend/out
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hexa-backend
+          path: backend
+
+      - name: Sync frontend to EC2
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_USER: ${{ secrets.EC2_USER }}
+          SOURCE: "frontend/out/"
+          TARGET: "/opt/projects/hexa/frontend/out"
+          SCRIPT_BEFORE: "mkdir -p /opt/projects/hexa/frontend/out"
+
+      - name: Sync backend to EC2
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_USER: ${{ secrets.EC2_USER }}
+          SOURCE: "backend/"
+          TARGET: "/opt/projects/hexa/backend"
+          SCRIPT_BEFORE: "mkdir -p /opt/projects/hexa/backend"
+
+      - name: Reload services on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/projects/hexa
+            # Recreate/refresh the virtualenv if the Python toolchain changed
+            if [ ! -x backend/.venv/bin/python ]; then
+              python3 -m venv backend/.venv
+            fi
+            backend/.venv/bin/pip install -r backend/requirements.txt >/dev/null
+            # Refresh infra units and reload nginx
+            sudo systemctl daemon-reload
+            sudo systemctl restart nginx
+            echo "Deploy complete: /opt/projects/hexa"

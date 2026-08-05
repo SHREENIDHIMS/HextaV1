@@ -1,0 +1,14 @@
+[Unit]
+Description=Socket for on-demand activation of hexa-backend
+
+# The shared_nginx container reaches the host backend through
+# host.docker.internal (host-gateway), which resolves to the docker
+# bridge gateway IP — NOT 127.0.0.1. Bind on all interfaces so the
+# proxy can connect; restrict externally via the host firewall /
+# EC2 security group (only 80/443 should be open inbound).
+[Socket]
+ListenStream=0.0.0.0:8001
+Accept=no
+
+[Install]
+WantedBy=sockets.target

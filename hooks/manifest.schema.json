@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexa.local/hooks/manifest.schema.json",
+  "title": "Hexta Hook Manifest",
+  "description": "Manifest for a future Hexta app or extension that consumes Hexta's public API and event surface. The contract is defined now so the standalone core can later expose app/extension modes without restructuring.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["manifest_version", "name", "version", "kind", "entry"],
+  "properties": {
+    "manifest_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of this manifest contract. Currently only 1."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name of the app/extension."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Reverse-dns or dotted id used to correlate audit events, e.g. 'com.hexa.loan-toolkit' or 'hexa.va-helper'."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver, e.g. '1.0.0'."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["app", "extension"],
+      "description": "app = independent client that talks to the Hexta REST API. extension = embedded surface (browser/IDE) that hooks into Hexta events/tools."
+    },
+    "entry": {
+      "type": "string",
+      "description": "Primary entry point. For an app: the start URL/scheme. For an extension: the injected script/module or tool id. Present so a future registry can bootstrap the consumer."
+    },
+    "auth": {
+      "type": "object",
+      "description": "How the consumer authenticates (see hooks/contracts/ for the JWT flow).",
+      "properties": {
+        "flow": {
+          "type": "string",
+          "enum": ["password", "bearer"],
+          "default": "bearer",
+          "description": "password = /api/v1/auth/login then store the bearer JWT. bearer = already has a token handed to it by the host."
+        }
+      },
+      "additionalProperties": true
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Event surface the consumer subscribes to (extension kind). Each value is the event name emitted by the Hexta core.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "examples": [
+        {
+          "search.completed": "listener.onSearchCompleted",
+          "feedback.received": "listener.onFeedback"
+        }
+      ]
+    },
+    "permissions": {
+      "type": "array",
+      "description": "Declared capabilities. Future enforcement may check these against an allow-list. When empty, the consumer is read-only observer.",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["search", "feedback", "documents:upload"]]
+    }
+  }
+}

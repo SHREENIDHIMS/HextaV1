@@ -1,0 +1,10 @@
+{
+  "manifest_version": 1,
+  "id": "com.hexa.loan-toolkit",
+  "name": "Loan Officer Toolkit",
+  "version": "0.1.0",
+  "kind": "app",
+  "entry": "https://apps.hexa.local/loan-toolkit",
+  "auth": { "flow": "password" },
+  "permissions": ["search", "feedback"]
+}

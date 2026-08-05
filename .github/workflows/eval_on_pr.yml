@@ -1,0 +1,66 @@
+name: Evaluation on PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/app/search/**"
+      - "backend/app/ranking/**"
+      - "backend/app/response/**"
+      - "backend/app/query_processing/**"
+      - "evaluation/**"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      # The eval benchmark exercises query-processing (process_query), which is
+      # a pure function with no DB dependency — no Postgres service is needed.
+      - name: Run benchmark
+        env:
+          HEXA_JWT_SECRET: test-secret
+          HEXA_ENVIRONMENT: development
+        run: |
+          python -m evaluation.run_benchmark --output-dir evaluation/reports
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: evaluation/reports/
+
+      - name: Check for regression
+        run: |
+          python -c "
+          import json, glob
+          reports = sorted(glob.glob('evaluation/reports/benchmark_*.json'), reverse=True)
+          if len(reports) < 2:
+              print('Not enough reports for comparison, skipping regression check')
+              exit(0)
+          latest = json.load(open(reports[0]))
+          previous = json.load(open(reports[1]))
+          threshold = 0.05
+          for metric in ['sub_question_accuracy', 'intent_accuracy', 'entity_accuracy']:
+              l = latest.get('summary', {}).get(metric, 0)
+              p = previous.get('summary', {}).get(metric, 0)
+              delta = l - p
+              if delta < -threshold:
+                  print(f'REGRESSION: {metric} dropped by {delta:.3f} (threshold: -{threshold})')
+                  exit(1)
+              print(f'{metric}: {p:.3f} \u2192 {l:.3f} (delta: {delta:+.3f})')
+          print('No significant regression detected')
+          "
