@@ -157,7 +157,7 @@ COMMON_WORDS: set[str] = {
      "percentage", "process", "steps", "step", "time", "day", "days", "checklist",
      "credit", "score", "fico", "loan", "money", "funds", "down", "payment",
      "investment", "property", "properties", "value", "home", "house",
-     "lender", "borrower", "applicant", "mortgage", "refinance",
+     "lender", "borrower", "applicant", "approval", "mortgage", "refinance",
 }
 
 # Phrases that indicate a new question when they start a fragment.
