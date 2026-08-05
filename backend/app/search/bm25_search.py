@@ -30,7 +30,7 @@ def build_tsquery_sql(text: str, config: str = "english") -> str:
     terms = _terms(text)
     if not terms:
         return "''::tsquery"
-    return " && ".join([f"to_tsquery('{config}', %s)"] * len(terms))
+    return " || ".join([f"to_tsquery('{config}', %s)"] * len(terms))
 
 
 def build_tsquery_params(text: str) -> list[str]:
@@ -46,4 +46,4 @@ def build_tsquery(text: str, config: str = "english") -> str:
     terms = _terms(text)
     if not terms:
         return "''::tsquery"
-    return " && ".join([f"to_tsquery('{config}', '{t}:*')" for t in terms])
+    return " || ".join([f"to_tsquery('{config}', '{t}:*')" for t in terms])
