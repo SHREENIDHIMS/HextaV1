@@ -4,6 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { LogOut, Plus } from "lucide-react";
 
 import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from "@/components/ui/conversation";
+import { Message, MessageContent } from "@/components/ui/message";
+import { Orb } from "@/components/ui/orb";
+import { Response } from "@/components/ui/response";
+import {
   SearchBar,
   ResponsePackageCard,
   RelatedQuestions,
@@ -28,7 +37,7 @@ interface AssistantMessage {
   response: SearchResponse | null;
 }
 
-type Message = UserMessage | AssistantMessage;
+type ChatMessage = UserMessage | AssistantMessage;
 
 const STORAGE_KEY = "hexa_chat_history";
 
@@ -46,7 +55,7 @@ const STARTER_QUESTIONS = [
 export default function HomePage() {
   const [token, setToken] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Restore auth + transcript on mount.
@@ -166,7 +175,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex h-screen bg-background flex-col">
+    <div className="flex h-screen flex-col">
       <header className="border-b border-border px-4 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Hexta</h1>
@@ -184,97 +193,94 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          {messages.length === 0 ? (
-            <div className="mt-12 text-center">
-              <h2 className="text-3xl font-bold text-foreground mb-2">
-                Ask me about mortgage lending
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                I can help you find information about credit scores, LTV ratios,
-                required documents, loan eligibility, debt-to-income rules, and
-                more — all sourced from our internal knowledge base. I do not
-                fabricate answers; when I cannot find an answer I will say so.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-2 justify-center">
-                {STARTER_QUESTIONS.map((q) => (
-                  <Button
-                    key={q}
-                    variant="outline"
-                    size="sm"
-                    className="text-left text-wrap"
-                    onClick={() => handleSearch(q)}
-                  >
-                    {q}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            messages.map((msg) => {
-              if (msg.role === "user") {
-                return (
-                  <div key={msg.id} className="flex justify-end">
-                    <div className="max-w-[80%] rounded-lg bg-primary text-primary-foreground px-4 py-3">
-                      <p className="text-sm">{msg.content}</p>
+      <main className="flex-1 overflow-hidden">
+        <div className="max-w-3xl mx-auto h-full px-4 py-6">
+          <Conversation>
+            <ConversationContent>
+              {messages.length === 0 ? (
+                <ConversationEmptyState>
+                  <div className="flex flex-col items-center gap-3">
+                    <Orb className="size-12" />
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium">Ask me about mortgage lending</h3>
+                      <p className="text-muted-foreground text-sm">
+                        I can help you find information about credit scores, LTV ratios,
+                        required documents, loan eligibility, debt-to-income rules, and
+                        more — all sourced from our internal knowledge base. I do not
+                        fabricate answers.
+                      </p>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                      {STARTER_QUESTIONS.map((q) => (
+                        <Button
+                          key={q}
+                          variant="outline"
+                          size="sm"
+                          className="max-w-xs text-left text-wrap"
+                          onClick={() => {
+                            void handleSearch(q);
+                          }}
+                        >
+                          {q}
+                        </Button>
+                      ))}
                     </div>
                   </div>
-                );
-              }
-
-              return (
-                <div key={msg.id} className="flex justify-start">
-                  <div className="max-w-[80%]">
-                    {msg.isLoading && (
-                      <div className="inline-flex items-center gap-2 text-muted-foreground text-sm">
-                        <span className="animate-pulse">Hexta is searching…</span>
-                      </div>
-                    )}
-
-                    {!msg.isLoading && msg.error && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
-                        {msg.error}
-                      </div>
-                    )}
-
-                    {!msg.isLoading && !msg.error && msg.response && (
-                      <>
-                        {msg.response.routing === "no_answer" &&
-                        msg.response.excerpts.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
-                            I could not find a matching excerpt in our knowledge
-                            base. Try rephrasing, or pick a suggestion below.
-                          </p>
-                        ) : (
-                          <ResponsePackageCard
-                            title={msg.response.title}
-                            excerpts={msg.response.excerpts}
-                            confidence={msg.response.confidence}
-                            routing={msg.response.routing}
-                          />
-                        )}
-
-                        {msg.response.excerpts.length > 0 && (
-                          <div className="mt-2">
-                            <ThumbsFeedback
-                              responseId={msg.response.response_id}
-                              token={token}
-                            />
+                </ConversationEmptyState>
+              ) : (
+                messages.map((msg) =>
+                  msg.role === "user" ? (
+                    <Message from="user" key={msg.id}>
+                      <MessageContent>
+                        <Response>{msg.content}</Response>
+                      </MessageContent>
+                    </Message>
+                  ) : (
+                    <Message from="assistant" key={msg.id}>
+                      <MessageContent>
+                        {msg.isLoading ? (
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <Orb className="size-6" agentState="listening" />
+                            <span>Searching the knowledge base…</span>
                           </div>
-                        )}
-
-                        <RelatedQuestions
-                          questions={msg.response.related_questions}
-                          onAskQuestion={handleAskRelated}
+                        ) : msg.error ? (
+                          <p className="text-sm text-red-600">{msg.error}</p>
+                        ) : msg.response ? (
+                          <>
+                            <ResponsePackageCard
+                              title={msg.response.title}
+                              excerpts={msg.response.excerpts}
+                              confidence={msg.response.confidence}
+                              routing={msg.response.routing}
+                            />
+                            {msg.response.excerpts.length > 0 && (
+                              <div className="mt-2">
+                                <ThumbsFeedback
+                                  responseId={msg.response.response_id}
+                                  token={token}
+                                />
+                              </div>
+                            )}
+                            <RelatedQuestions
+                              questions={msg.response.related_questions}
+                              onAskQuestion={handleAskRelated}
+                            />
+                          </>
+                        ) : null}
+                      </MessageContent>
+                      <div className="ring-border size-8 overflow-hidden rounded-full ring-1">
+                        <Orb
+                          className="h-full w-full"
+                          agentState={msg.isLoading ? "talking" : null}
                         />
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
+                      </div>
+                    </Message>
+                  )
+                )
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
         </div>
       </main>
 
