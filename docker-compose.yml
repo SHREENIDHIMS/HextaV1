@@ -27,6 +27,11 @@ services:
       HEXA_DATABASE_URL: "postgresql://hexa_app:devpass@host.docker.internal:5433/hexa_assistant"
       HEXA_ENVIRONMENT: development
       HEXA_CORS_ORIGINS: "*"
+      HEXA_RERANK_ENABLED: "True"
+      HEXA_RERANK_MODEL_DIR: "/nlp_models/reranker"
+    volumes:
+      # Reuse the host models so rerank + embedding parity match the host run.
+      - ./nlp_models:/nlp_models:ro
     restart: unless-stopped
 
   frontend:
