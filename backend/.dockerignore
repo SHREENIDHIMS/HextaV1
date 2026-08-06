@@ -1,0 +1,16 @@
+# Build/runtime artifacts not needed in the image (keeps it small + avoids
+# shipping .venv, secrets, or models).
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.git/
+.gitignore
+.env
+.env.example
+nlp_models/
+storage/
+tests/
+*.md
+docker-compose.yml
