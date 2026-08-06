@@ -3,8 +3,8 @@ name: Deploy
 on:
   # Deploy is intentionally gated. Building/testing runs automatically on
   # every push to main, but the EC2 deploy step only fires when this
-  # workflow is run manually with the "Deploy now" option, or when
-  # `secrets.DEPLOY_ENABLED` is set to "true".
+  # workflow is run manually with deploy=true, or when the `DEPLOY_ENABLED`
+  # repo variable (Repo Settings → Variables → Actions) is set to "true".
   push:
     branches: [main]
   workflow_dispatch:
@@ -90,20 +90,14 @@ jobs:
 
   deploy:
     # Real EC2 deployment. Only runs when explicitly requested — either a
-    # manual `workflow_dispatch` with deploy=true, or DEPLOY_ENABLED=true
-    # in repo secrets. This makes accidental deploys impossible while the
-    # project is still under development.
+    # manual `workflow_dispatch` with deploy=true, OR a push to main while the
+    # `DEPLOY_ENABLED` repo variable (Repo Settings → Variables → Actions) is
+    # "true". The `vars` context is the only toggle legal in a job-level
+    # `if:`: GitHub evaluates `if` BEFORE `env`/`secrets` are populated, so the
+    # previous `env.DEPLOY_ENABLED` reference made this workflow fail to parse
+    # on every run. Leave the variable unset/non-"true" to disable
+    # push-to-main auto-deploys (manual deploy=true always works).
     needs: build-and-test
-    # DEPLOY_ENABLED is mapped from a repo secret into an env var because the
-    # `secrets` context is not available inside `if:` conditions (GitHub
-    # disallows it). Map the secret to job `env`, then reference env.<VAR>
-    # in the condition below.
-    env:
-      DEPLOY_ENABLED: ${{ secrets.DEPLOY_ENABLED }}
-    # Deploy only when explicitly requested:
-    #   - manual run of this workflow with the deploy input set to 'true', OR
-    #   - a push to main while the DEPLOY_ENABLED repo secret is set to 'true'.
-    # Grouped with explicit parentheses to avoid precedence surprises.
     if: |
       !cancelled() &&
       (
@@ -112,7 +106,7 @@ jobs:
         ||
         (github.event_name == 'push' &&
          github.ref == 'refs/heads/main' &&
-          env.DEPLOY_ENABLED == 'true')
+         vars.DEPLOY_ENABLED == 'true')
       )
     runs-on: ubuntu-latest
     timeout-minutes: 30
