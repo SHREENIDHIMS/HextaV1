@@ -100,6 +100,24 @@ GOLD: list[tuple[int, str, str, str]] = [
      "loan estimate and a closing disclosure", "Closing Costs and Fees Overview"),
     (12, "what is the difference between fha and conventional loans",
      "charges an upfront mip", "FHA vs Conventional Loan Comparison"),
+    (13, "what is the conventional loan down payment range",
+     "minimum of 3% to 5% down", "FHA vs Conventional Loan Comparison"),
+    (14, "how does a lower credit score affect mortgage insurance",
+     "increases the cost of mortgage insurance", "Credit Score Requirements for Mortgages"),
+    (15, "what is the upfront mip for fha loans",
+     "charges an upfront MIP (1.75% of the loan)", "FHA vs Conventional Loan Comparison"),
+    (16, "when do conventional loans charge pmi",
+     "PMI only when the down payment is below 20%", "FHA vs Conventional Loan Comparison"),
+    (17, "what is the maximum front-end housing ratio",
+     "below 28% of gross monthly income", "Debt-to-Income (DTI) Ratio Requirements"),
+    (18, "are bonuses and capital gains counted in the dti ratio",
+     "Capital gains, irregular bonuses, and one-time receipts are not counted as stable monthly income",
+     "Debt-to-Income (DTI) Ratio Requirements"),
+    (19, "how much does one discount point cost",
+     "each point costs 1% of the loan amount", "Closing Costs and Fees Overview"),
+    (20, "how can i raise my credit score before applying",
+     "correcting errors on the credit report can raise the score",
+     "Credit Score Requirements for Mortgages"),
 ]
 
 
@@ -177,12 +195,20 @@ def _order_ids(ranked) -> list[int]:
 
 
 def _gold_chunk(conn, gold_sub: str) -> tuple[int | None, str | None]:
+    """Locate the chunk containing the verbatim gold phrase.
+
+    Chunks may contain OCR/structural artifacts (newlines, tabs, runs of
+    spaces), so whitespace is normalized on both sides before locating — a
+    single-space gold phrase should still match a chunked paragraph.
+    """
+    needle = " ".join(gold_sub.lower().split())
     with conn.cursor() as cur:
         cur.execute(
             "SELECT c.id, d.title FROM document_chunks c "
             "JOIN documents d ON d.id = c.document_id "
-            "WHERE POSITION(%s IN LOWER(c.content)) > 0 ORDER BY c.id LIMIT 1",
-            (gold_sub.lower(),),
+            "WHERE POSITION(%s IN regexp_replace(LOWER(c.content), '\\s+', ' ', 'g')) > 0 "
+            "ORDER BY c.id LIMIT 1",
+            (needle,),
         )
         row = cur.fetchone()
     if row is None:
