@@ -38,8 +38,10 @@ sudo cp infra/systemd/hexa-backend.service  /etc/systemd/system/
 sudo cp infra/systemd/hexa-backend-idle.timer   /etc/systemd/system/
 sudo cp infra/systemd/hexa-backend-idle.service /etc/systemd/system/
 
-chmod +x infra/scripts/idle_stop_watcher.sh
-chmod +x infra/scripts/run_ingestion.sh
+# Install helper scripts to the path the systemd unit expects.
+sudo mkdir -p /opt/projects/hexa/infra/scripts
+sudo cp infra/scripts/*.sh /opt/projects/hexa/infra/scripts/
+sudo chmod +x /opt/projects/hexa/infra/scripts/*.sh
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now hexa-backend.socket
