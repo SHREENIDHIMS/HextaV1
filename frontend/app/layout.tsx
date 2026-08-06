@@ -7,7 +7,11 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 export const metadata = {
   title: "Hexta — Mortgage Knowledge Assistant",
   description: "Ask questions about mortgage lending requirements, documents, and policies.",
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
