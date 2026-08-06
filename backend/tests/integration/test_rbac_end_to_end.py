@@ -104,3 +104,34 @@ def test_denied_chunk_excluded_from_search_and_reranker():
     finally:
         conn.rollback()
         conn.close()
+
+
+def test_two_users_with_different_departments_see_scoped_results():
+    """SKILL.md Phase-4 DoD: "two departments and two users with different
+    RBAC scopes returns correctly scoped results for each."
+
+    A loan_officer in `general` must see only general chunks; an underwriter in
+    `underwriting` must see only underwriting chunks — cross-department leakage
+    is a rule-#1 violation. Reuses `_seed` (general + underwriting docs/chunks).
+    """
+    user_a = {"role": "loan_officer", "department": "general", "allowed_departments": []}
+    user_b = {"role": "underwriter", "department": "underwriting", "allowed_departments": []}
+    conn = psycopg.connect(settings.database_url, row_factory=psycopg.rows.dict_row)
+    register_vector(conn)
+    try:
+        with conn.cursor() as cur:
+            gen_chunk, uw_chunk = _seed(conn, cur)
+
+        with patch("app.search.hybrid_orchestrator.embed_query", return_value=VEC):
+            res_a = search_knowledge_base(conn, ["credit score"], user_a)
+            res_b = search_knowledge_base(conn, ["credit score"], user_b)
+
+        ids_a = {c.chunk_id for c in res_a.candidates}
+        ids_b = {c.chunk_id for c in res_b.candidates}
+        assert gen_chunk in ids_a, "user A (general) must see the general chunk"
+        assert uw_chunk not in ids_a, "user A must NOT see the underwriting chunk"
+        assert uw_chunk in ids_b, "user B (underwriting) must see the underwriting chunk"
+        assert gen_chunk not in ids_b, "user B must NOT see the general chunk"
+    finally:
+        conn.rollback()
+        conn.close()
