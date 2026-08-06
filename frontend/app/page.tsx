@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { LogOut, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import {
   Conversation,
@@ -9,6 +9,7 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ui/conversation";
+import Sidebar from "@/components/ui/sidebar";
 import { Message, MessageContent } from "@/components/ui/message";
 import { Orb } from "@/components/ui/orb";
 import { Response } from "@/components/ui/response";
@@ -175,26 +176,24 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Hexta</h1>
-          <p className="text-xs text-muted-foreground">Mortgage Knowledge Assistant</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={handleNewChat} aria-label="New chat">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New chat</span>
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleLogout} aria-label="Sign out">
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sign out</span>
-          </Button>
-        </div>
-      </header>
+    <div className="flex h-screen">
+      <Sidebar onSignOut={handleLogout} />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <header className="border-b border-border px-4 py-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Hexta</h1>
+            <p className="text-xs text-muted-foreground">Mortgage Knowledge Assistant</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleNewChat} aria-label="New chat">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New chat</span>
+            </Button>
+          </div>
+        </header>
 
-      <main className="flex-1 overflow-hidden">
-        <div className="max-w-3xl mx-auto h-full px-4 py-6">
+        <main className="flex-1 overflow-hidden">
+          <div className="max-w-3xl mx-auto flex flex-col h-full px-4 py-6">
           <Conversation>
             <ConversationContent>
               {messages.length === 0 ? (
@@ -293,6 +292,7 @@ export default function HomePage() {
           />
         </div>
       </footer>
+      </div>
     </div>
   );
 }

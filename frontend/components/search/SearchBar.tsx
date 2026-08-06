@@ -29,6 +29,9 @@ export default function SearchBar({
     const trimmed = query.trim();
     if (trimmed && !isLoading) {
       onSearch(trimmed);
+      // Clear the field after dispatching so the prompt doesn't linger
+      // and the user can fire off the next question immediately.
+      setQuery("");
     }
   };
 

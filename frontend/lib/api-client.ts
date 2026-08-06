@@ -145,3 +145,70 @@ export async function submitFeedback(
 
   return response.json();
 }
+
+// --- Documents (admin-only; ingestion runs separately in the batch job) ---
+
+export interface UploadResponse {
+  message: string;
+  filename: string;
+  stored_as: string;
+  size_bytes: number;
+}
+
+export interface DocumentItem {
+  id: number;
+  title: string;
+  source_path: string;
+  doc_type: string;
+  department: string;
+  is_active: boolean;
+  is_approved: boolean;
+  version: number;
+  created_at: string;
+}
+
+export interface ListDocumentsResponse {
+  documents: DocumentItem[];
+}
+
+export async function uploadDocument(
+  file: File,
+  token: string,
+): Promise<UploadResponse> {
+  const form = new FormData();
+  form.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/documents/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      (error && error.detail) || 'Upload failed',
+      response.status,
+    );
+  }
+
+  return response.json();
+}
+
+export async function listDocuments(
+  token: string,
+): Promise<ListDocumentsResponse> {
+  const response = await fetch(`${API_BASE_URL}/documents/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      (error && error.detail) || 'Failed to load documents',
+      response.status,
+    );
+  }
+
+  return response.json();
+}

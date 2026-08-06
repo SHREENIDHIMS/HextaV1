@@ -54,3 +54,4 @@ htmlcov/
 
 # Local development data
 backend/storage/
+frontend/tsconfig.tsbuildinfo
