@@ -1,0 +1,43 @@
+# Local "all-in-one" stack for the Hexta assistant.
+# Brings up the frontend (static Next.js export on :3000) and the backend
+# (FastAPI, single worker, on :8001) in containers under one command.
+#
+# Postgres is intentionally NOT defined here: per the architecture, one shared
+# Postgres instance serves the host, and on this dev box it already runs locally
+# on 5433. The backend container reaches it via host.docker.internal:5433
+# (Windows / Docker Desktop host networking) — no per-project Postgres container.
+#
+# Usage:
+#   docker compose up --build -d      # build (first time) and start
+#   docker compose stop               # stop
+#   docker compose down               # stop and remove
+#
+# Frontend kit API calls hit http://localhost:8001/api/v1 (NEXT_PUBLIC_API_URL,
+# baked at frontend build time), which maps here to the backend service.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hexta-backend
+    ports:
+      - "8001:8001"
+    environment:
+      HEXA_DATABASE_URL: "postgresql://hexa_app:devpass@host.docker.internal:5433/hexa_assistant"
+      HEXA_ENVIRONMENT: development
+      HEXA_CORS_ORIGINS: "*"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hexta-frontend
+    ports:
+      - "3000:80"
+    environment:
+      # Frontend reads NEXT_PUBLIC_API_URL only at build time (static export),
+      # so it is NOT settable at runtime here; the service is reachable via :8001.
+      _NOTE: "frontend API base is baked at build (default http://localhost:8001/api/v1)"
+    restart: unless-stopped
