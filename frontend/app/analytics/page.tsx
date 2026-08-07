@@ -39,7 +39,7 @@ function StatCard({
   sub,
   delay = 0,
 }: {
-  icon: React.ElementType;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   label: string;
   value: string | number;
   sub?: string;
