@@ -118,10 +118,8 @@ function NavLinks({
 
 function BrandHeader({
   collapsed,
-  token,
 }: {
   collapsed: boolean;
-  token: string;
 }) {
   if (collapsed) {
     return (
@@ -205,7 +203,7 @@ export default function Sidebar({
             isCollapsed ? "h-16 justify-center" : "justify-between pr-2 pl-0"
           )}
         >
-          {<BrandHeader collapsed={isCollapsed} token={token} />}
+          {<BrandHeader collapsed={isCollapsed} />}
           {!isCollapsed && collapseButton}
           {isCollapsed && collapseButton}
         </div>
