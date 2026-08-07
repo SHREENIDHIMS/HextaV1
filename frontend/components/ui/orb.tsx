@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTexture } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
@@ -39,12 +39,17 @@ export function Orb({
   className,
 }: OrbProps) {
   const [mounted, setMounted] = useState(false)
+  const [canvasKey, setCanvasKey] = useState(0)
   useEffect(() => setMounted(true), [])
+
+  const handleContextRestored = useCallback(() => setCanvasKey((k) => k + 1), [])
 
   return (
     <div className={className ?? "relative h-full w-full"}>
       {mounted && (
-        <Canvas
+         <Canvas
+          key={canvasKey}
+          aria-hidden="true"
           resize={{ debounce: resizeDebounce }}
           gl={{
             alpha: true,
@@ -54,6 +59,7 @@ export function Orb({
         >
           <Scene
             colors={colors}
+            onContextRestored={handleContextRestored}
             colorsRef={colorsRef}
             seed={seed}
             agentState={agentState}
@@ -74,6 +80,7 @@ export function Orb({
 function Scene({
   colors,
   colorsRef,
+  onContextRestored,
   seed,
   agentState,
   volumeMode,
@@ -86,6 +93,7 @@ function Scene({
 }: {
   colors: [string, string]
   colorsRef?: React.RefObject<[string, string]>
+  onContextRestored: () => void
   seed?: number
   agentState: AgentState
   volumeMode: "auto" | "manual"
@@ -167,6 +175,16 @@ function Scene({
   useFrame((_, delta: number) => {
     const mat = circleRef.current?.material
     if (!mat) return
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (prefersReduced) {
+      const u = mat.uniforms
+      if (u.uOpacity.value < 1) {
+        u.uOpacity.value = Math.min(1, u.uOpacity.value + delta * 2)
+      }
+      return
+    }
     const live = colorsRef?.current
     if (live) {
       if (live[0]) targetColor1Ref.current.set(live[0])
@@ -228,10 +246,28 @@ function Scene({
         gl.forceContextRestore()
       }, 1)
     }
+    const handleRestored = () => onContextRestored()
+    const onContextCreationError = (event: Event) => {
+      const status = (event as Event & { statusMessage?: string }).statusMessage
+      console.error("[Orb] WebGL context creation failed:", status ?? "unknown")
+    }
     canvas.addEventListener("webglcontextlost", onContextLost, false)
-    return () =>
+    canvas.addEventListener("webglcontextrestored", handleRestored, false)
+    canvas.addEventListener(
+      "webglcontextcreationerror",
+      onContextCreationError,
+      false
+    )
+    return () => {
       canvas.removeEventListener("webglcontextlost", onContextLost, false)
-  }, [gl])
+      canvas.removeEventListener("webglcontextrestored", handleRestored, false)
+      canvas.removeEventListener(
+        "webglcontextcreationerror",
+        onContextCreationError,
+        false
+      )
+    }
+  }, [gl, onContextRestored])
 
   const uniforms = useMemo(() => {
     perlinNoiseTexture.wrapS = THREE.RepeatWrapping

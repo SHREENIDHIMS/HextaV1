@@ -61,46 +61,47 @@ export default function ThumbsFeedback({ responseId, token }: ThumbsFeedbackProp
         <button
           type="button"
           onClick={() => setRating(1)}
-          className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+          className={`flex items-center gap-1 min-h-11 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
             rating === 1
               ? "bg-green-100 text-green-800 border-green-300"
               : "hover:bg-muted border-border"
           }`}
         >
-          <ThumbsUp />
+          <ThumbsUp aria-hidden="true" />
           Helpful
         </button>
         <button
           type="button"
           onClick={() => setRating(-1)}
-          className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+          className={`flex items-center gap-1 min-h-11 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
             rating === -1
               ? "bg-red-100 text-red-800 border-red-300"
               : "hover:bg-muted border-border"
           }`}
         >
-          <ThumbsDown />
+          <ThumbsDown aria-hidden="true" />
           Not helpful
         </button>
       </div>
 
       {rating !== null && (
         <div className="flex items-end gap-2">
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Add a comment (optional)"
-            rows={2}
-            maxLength={500}
-            className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none"
-          />
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={rating === null || isSubmitting}
-            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            <Send />
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Add a comment (optional)"
+              rows={2}
+              maxLength={500}
+              aria-label="Comment (optional)"
+              className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none"
+            />
+           <button
+             type="button"
+             onClick={handleSubmit}
+             disabled={rating === null || isSubmitting}
+             className="px-4 py-2 min-h-11 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+           >
+            <Send aria-hidden="true" />
             {isSubmitting ? "Sending…" : "Send"}
           </button>
         </div>

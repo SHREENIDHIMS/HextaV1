@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertCircle } from "lucide-react";
 
 import {
   Conversation,
@@ -13,6 +14,8 @@ import Sidebar from "@/components/ui/sidebar";
 import { Message, MessageContent } from "@/components/ui/message";
 import { Orb } from "@/components/ui/orb";
 import { Response } from "@/components/ui/response";
+import AssistantActions from "@/components/ui/AssistantActions";
+import UserActions from "@/components/ui/UserActions";
 import {
   SearchBar,
   ResponsePackageCard,
@@ -20,14 +23,13 @@ import {
 } from "@/components/search";
 import { ApiError, SearchResponse, searchKnowledgeBase } from "@/lib/api-client";
 import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import ThumbsFeedback from "@/components/feedback/ThumbsFeedback";
 import LoginForm from "@/components/auth/LoginForm";
 
 interface UserMessage {
   id: string;
   role: "user";
   content: string;
+  ts: number;
 }
 
 interface AssistantMessage {
@@ -36,6 +38,8 @@ interface AssistantMessage {
   isLoading: boolean;
   error: string | null;
   response: SearchResponse | null;
+  ts: number;
+  userQuery?: string;
 }
 
 type ChatMessage = UserMessage | AssistantMessage;
@@ -47,17 +51,56 @@ function newId() {
 }
 
 const STARTER_QUESTIONS = [
-  "What are the mortgage approval requirements?",
-  "What is the maximum debt to income ratio?",
-  "What credit score do I need for the best rate?",
-  "How much down payment is required for a conventional loan?",
+  { q: "What are the mortgage approval requirements?", emoji: "🏠" },
+  { q: "What is the maximum debt-to-income ratio?", emoji: "📊" },
+  { q: "What credit score do I need for the best rate?", emoji: "⭐" },
+  { q: "How much down payment is required for a conventional loan?", emoji: "💰" },
 ];
+
+function AssistantAvatar({ talking }: { talking: boolean }) {
+  return (
+    <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-border/80 bg-card">
+      <Orb className="h-full w-full" agentState={talking ? "talking" : null} />
+    </div>
+  );
+}
+
+function LoadingIndicator() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center gap-3 py-2"
+    >
+      <Orb className="size-5 shrink-0" agentState="listening" />
+      <div className="flex items-center gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="block size-1.5 rounded-full bg-primary"
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
+            transition={{
+              repeat: Infinity,
+              duration: 0.9,
+              delay: i * 0.18,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+        <span className="text-xs text-muted-foreground ml-1">
+          Searching knowledge base…
+        </span>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function HomePage() {
   const [token, setToken] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [openSources, setOpenSources] = useState<Record<string, boolean>>({});
 
   // Restore auth + transcript on mount.
   useEffect(() => {
@@ -67,7 +110,10 @@ export default function HomePage() {
     } else {
       clearToken();
     }
-    const saved = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+    const saved =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(STORAGE_KEY)
+        : null;
     if (saved) {
       try {
         setMessages(JSON.parse(saved));
@@ -107,20 +153,30 @@ export default function HomePage() {
       setToken(activeToken);
       setIsLoading(true);
 
-      const userMsg: UserMessage = { id: newId(), role: "user", content: query };
+      const userMsg: UserMessage = {
+        id: newId(),
+        role: "user",
+        content: query,
+        ts: Date.now(),
+      };
       const assistantMsg: AssistantMessage = {
         id: newId(),
         role: "assistant",
         isLoading: true,
         error: null,
         response: null,
+        ts: Date.now(),
+        userQuery: query,
       };
 
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
 
       try {
         const result = await searchKnowledgeBase(query, activeToken);
-        replaceAssistant(assistantMsg.id, { isLoading: false, response: result });
+        replaceAssistant(assistantMsg.id, {
+          isLoading: false,
+          response: result,
+        });
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           clearToken();
@@ -133,7 +189,8 @@ export default function HomePage() {
         }
         replaceAssistant(assistantMsg.id, {
           isLoading: false,
-          error: err instanceof Error ? err.message : "Something went wrong",
+          error:
+            err instanceof Error ? err.message : "Something went wrong",
         });
       } finally {
         setIsLoading(false);
@@ -149,149 +206,201 @@ export default function HomePage() {
     [handleSearch]
   );
 
+  const handleRegenerate = useCallback(
+    (query: string) => {
+      void handleSearch(query);
+    },
+    [handleSearch]
+  );
+
+  const answerTextFor = (msg: AssistantMessage): string =>
+    msg.response?.excerpts?.map((e) => e.text).join("\n\n") ?? "";
+
+  const toggleSources = (id: string) =>
+    setOpenSources((prev) => ({ ...prev, [id]: !prev[id] }));
+
   const handleLoginSuccess = () => {
     setToken(getToken());
     setMessages([]);
-    if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== "undefined")
+      window.localStorage.removeItem(STORAGE_KEY);
   };
 
   const handleLogout = () => {
     clearToken();
     setToken(null);
     setMessages([]);
-    if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== "undefined")
+      window.localStorage.removeItem(STORAGE_KEY);
   };
 
   const handleNewChat = () => {
     setMessages([]);
-    if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== "undefined")
+      window.localStorage.removeItem(STORAGE_KEY);
   };
 
-  if (!authChecked) {
-    return null;
-  }
-
-  if (!token) {
-    return <LoginForm onSuccess={handleLoginSuccess} />;
-  }
+  if (!authChecked) return null;
+  if (!token) return <LoginForm onSuccess={handleLoginSuccess} />;
 
   return (
-    <div className="flex h-screen">
-      <Sidebar onSignOut={handleLogout} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="border-b border-border px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Hexta</h1>
-            <p className="text-xs text-muted-foreground">Mortgage Knowledge Assistant</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleNewChat} aria-label="New chat">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New chat</span>
-            </Button>
-          </div>
-        </header>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar onSignOut={handleLogout} onNewChat={handleNewChat} />
 
-        <main className="flex-1 overflow-hidden">
-          <div className="max-w-3xl mx-auto flex flex-col h-full px-4 py-6">
-          <Conversation>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <main className="relative flex min-h-0 flex-1 overflow-hidden">
+          <Conversation className="scrollbar h-full flex-1">
             <ConversationContent>
-              {messages.length === 0 ? (
-                <ConversationEmptyState>
-                  <div className="flex flex-col items-center gap-3">
-                    <Orb className="size-12" />
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium">Ask me about mortgage lending</h3>
-                      <p className="text-muted-foreground text-sm">
-                        I can help you find information about credit scores, LTV ratios,
-                        required documents, loan eligibility, debt-to-income rules, and
-                        more — all sourced from our internal knowledge base. I do not
-                        fabricate answers.
-                      </p>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                      {STARTER_QUESTIONS.map((q) => (
-                        <Button
-                          key={q}
-                          variant="outline"
-                          size="sm"
-                          className="max-w-xs text-left text-wrap"
-                          onClick={() => {
-                            void handleSearch(q);
+              <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
+                <AnimatePresence mode="wait">
+                  {messages.length === 0 ? (
+                    <ConversationEmptyState key="empty">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="flex flex-col items-center gap-6 text-center"
+                      >
+                        {/* Animated Orb */}
+                        <motion.div
+                          animate={{
+                            y: [0, -8, 0],
+                          }}
+                          transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: "easeInOut",
                           }}
                         >
-                          {q}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </ConversationEmptyState>
-              ) : (
-                messages.map((msg) =>
-                  msg.role === "user" ? (
-                    <Message from="user" key={msg.id}>
-                      <MessageContent>
-                        <Response>{msg.content}</Response>
-                      </MessageContent>
-                    </Message>
+                          <Orb className="size-20" />
+                        </motion.div>
+
+                        {/* Headline */}
+                        <div className="space-y-2 max-w-md">
+                          <h2 className="text-2xl font-bold gradient-brand-text">
+                            Mortgage Knowledge Assistant
+                          </h2>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Ask me anything about mortgage lending — credit
+                            scores, LTV ratios, required documents, loan
+                            eligibility, and more. Every answer comes directly
+                            from your knowledge base.
+                          </p>
+                        </div>
+
+                        {/* Starter questions */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg mt-2">
+                          {STARTER_QUESTIONS.map(({ q, emoji }, i) => (
+                            <motion.button
+                              key={q}
+                              type="button"
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                delay: 0.15 + i * 0.08,
+                                duration: 0.3,
+                              }}
+                              onClick={() => void handleSearch(q)}
+                              className="
+                                group flex items-start gap-2.5 rounded-xl
+                                border border-border/60 bg-card p-3
+                                text-left text-sm text-muted-foreground
+                                hover:border-primary/40 hover:bg-primary/5 hover:text-foreground
+                                transition-all duration-200
+                                focus-visible:ring-2 focus-visible:ring-ring outline-none
+                              "
+                            >
+                              <span className="text-lg leading-none">{emoji}</span>
+                              <span className="leading-snug">{q}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </ConversationEmptyState>
                   ) : (
-                    <Message from="assistant" key={msg.id}>
-                      <MessageContent>
-                        {msg.isLoading ? (
-                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                            <Orb className="size-6" agentState="listening" />
-                            <span>Searching the knowledge base…</span>
-                          </div>
-                        ) : msg.error ? (
-                          <p className="text-sm text-red-600">{msg.error}</p>
-                        ) : msg.response ? (
-                          <>
-                            <ResponsePackageCard
-                              title={msg.response.title}
-                              excerpts={msg.response.excerpts}
-                              confidence={msg.response.confidence}
-                              routing={msg.response.routing}
-                            />
-                            {msg.response.excerpts.length > 0 && (
-                              <div className="mt-2">
-                                <ThumbsFeedback
-                                  responseId={msg.response.response_id}
-                                  token={token}
-                                />
-                              </div>
-                            )}
-                            <RelatedQuestions
-                              questions={msg.response.related_questions}
-                              onAskQuestion={handleAskRelated}
-                            />
-                          </>
-                        ) : null}
-                      </MessageContent>
-                      <div className="ring-border size-8 overflow-hidden rounded-full ring-1">
-                        <Orb
-                          className="h-full w-full"
-                          agentState={msg.isLoading ? "talking" : null}
-                        />
-                      </div>
-                    </Message>
-                  )
-                )
-              )}
+                    <div key="messages" className="space-y-2">
+                      {messages.map((msg) =>
+                        msg.role === "user" ? (
+                          <Message from="user" key={msg.id} timestamp={msg.ts}>
+                            <MessageContent>
+                              <Response>{msg.content}</Response>
+                            </MessageContent>
+                            <UserActions text={msg.content} />
+                          </Message>
+                        ) : (
+                          <Message
+                            from="assistant"
+                            key={msg.id}
+                            timestamp={msg.ts}
+                          >
+                            <MessageContent>
+                              {msg.isLoading ? (
+                                <LoadingIndicator />
+                              ) : msg.error ? (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3"
+                                >
+                                  <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
+                                  <p className="text-sm text-destructive">
+                                    {msg.error}
+                                  </p>
+                                </motion.div>
+                              ) : msg.response ? (
+                                <>
+                                  <ResponsePackageCard
+                                    title={msg.response.title}
+                                    excerpts={msg.response.excerpts}
+                                    confidence={msg.response.confidence}
+                                    routing={msg.response.routing}
+                                    sourcesOpen={openSources[msg.id]}
+                                    onToggleSources={() =>
+                                      toggleSources(msg.id)
+                                    }
+                                  />
+                                  <AssistantActions
+                                    answerText={answerTextFor(msg)}
+                                    responseId={msg.response.response_id}
+                                    token={token}
+                                    userQuery={msg.userQuery}
+                                    onRegenerate={handleRegenerate}
+                                    sourcesOpen={openSources[msg.id]}
+                                    onToggleSources={() =>
+                                      toggleSources(msg.id)
+                                    }
+                                  />
+                                  <RelatedQuestions
+                                    questions={msg.response.related_questions}
+                                    onAskQuestion={handleAskRelated}
+                                  />
+                                </>
+                              ) : null}
+                            </MessageContent>
+                            <AssistantAvatar talking={msg.isLoading} />
+                          </Message>
+                        )
+                      )}
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
-        </div>
-      </main>
+        </main>
 
-      <footer className="border-t border-border p-4">
-        <div className="max-w-3xl mx-auto">
-          <SearchBar
-            onSearch={handleSearch}
-            isLoading={isLoading}
-            placeholder="Ask about mortgage requirements, documents, rates..."
-          />
-        </div>
-      </footer>
+        {/* Footer input */}
+        <footer className="border-t border-border/60 bg-background/80 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-3xl px-4 py-4 sm:px-6">
+            <SearchBar
+              onSearch={handleSearch}
+              isLoading={isLoading}
+              placeholder="Ask about mortgage requirements, documents, rates…"
+            />
+          </div>
+        </footer>
       </div>
     </div>
   );

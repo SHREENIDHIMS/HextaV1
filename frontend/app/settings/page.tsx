@@ -6,6 +6,7 @@ import Sidebar from "@/components/ui/sidebar";
 import LoginForm from "@/components/auth/LoginForm";
 import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
 import { verifyToken } from "@/lib/api-client";
+import { ThemeToggle } from "@/components/theme/toggle";
 
 export default function SettingsPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -36,6 +37,15 @@ export default function SettingsPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto p-6">
           <h1 className="text-2xl font-bold mb-4">Settings</h1>
+
+          <section className="mb-6">
+            <h2 className="text-base font-semibold mb-1">Appearance</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Choose between light, dark, or system theme.
+            </p>
+            <ThemeToggle />
+          </section>
+
           {me && (
             <p className="text-sm text-muted-foreground mb-2">
               Authenticated as user #{me.user_id} ({me.email ?? "—"}) — valid:{" "}

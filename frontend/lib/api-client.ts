@@ -212,3 +212,117 @@ export async function listDocuments(
 
   return response.json();
 }
+
+// --- Analytics (admin-only) ---
+
+export interface AnalyticsStats {
+  total_queries: number;
+  avg_confidence: number;
+  answer_rate: number;
+  daily_volume: { date: string; count: number }[];
+}
+
+export interface TopSource {
+  title: string;
+  citations: number;
+}
+
+export interface KnowledgeGap {
+  id: number;
+  query: string;
+  intent: string | null;
+  confidence: number;
+  created_at: string;
+}
+
+export async function getAnalyticsStats(token: string): Promise<AnalyticsStats> {
+  const response = await fetch(`${API_BASE_URL}/analytics/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      (error && error.detail) || 'Failed to load analytics stats',
+      response.status,
+    );
+  }
+  return response.json();
+}
+
+export async function getTopSources(token: string): Promise<{ top_sources: TopSource[] }> {
+  const response = await fetch(`${API_BASE_URL}/analytics/top-sources`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      (error && error.detail) || 'Failed to load top sources',
+      response.status,
+    );
+  }
+  return response.json();
+}
+
+export async function getKnowledgeGaps(token: string): Promise<{ knowledge_gaps: KnowledgeGap[] }> {
+  const response = await fetch(`${API_BASE_URL}/analytics/knowledge-gaps`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      (error && error.detail) || 'Failed to load knowledge gaps',
+      response.status,
+    );
+  }
+  return response.json();
+}
+
+// --- Admin (admin-only) ---
+
+export interface UserItem {
+  id: number;
+  email: string;
+  full_name: string | null;
+  role: string;
+  department: string | null;
+  allowed_departments: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export async function listUsers(token: string): Promise<{ users: UserItem[] }> {
+  const response = await fetch(`${API_BASE_URL}/admin/users`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      (error && error.detail) || 'Failed to load users',
+      response.status,
+    );
+  }
+  return response.json();
+}
+
+export async function patchUser(
+  userId: number,
+  patch: { is_active: boolean },
+  token: string,
+): Promise<{ id: number; email: string; is_active: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      (error && error.detail) || 'Failed to update user',
+      response.status,
+    );
+  }
+  return response.json();
+}

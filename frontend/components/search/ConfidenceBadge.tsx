@@ -25,13 +25,13 @@ export default function ConfidenceBadge({
   const getIcon = () => {
     switch (routing) {
       case "answer":
-        return <Shield className="w-3.5 h-3.5" />;
+        return <Shield className="w-3.5 h-3.5" aria-hidden="true" />;
       case "partial":
-        return <TrendingUp className="w-3.5 h-3.5" />;
+        return <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />;
       case "no_answer":
-        return <AlertCircle className="w-3.5 h-3.5" />;
+        return <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />;
       default:
-        return <Shield className="w-3.5 h-3.5" />;
+        return <Shield className="w-3.5 h-3.5" aria-hidden="true" />;
     }
   };
 

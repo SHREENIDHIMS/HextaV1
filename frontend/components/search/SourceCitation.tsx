@@ -19,9 +19,9 @@ export default function SourceCitation({
     <div className="flex items-start gap-2.5 text-sm">
       <div className="mt-0.5 flex-shrink-0">
         {chunkType === "table" ? (
-          <Hash className="w-3.5 h-3.5 text-muted-foreground" />
+          <Hash className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
         ) : (
-          <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+          <FileText className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
         )}
       </div>
       <div className="min-w-0 flex-1">

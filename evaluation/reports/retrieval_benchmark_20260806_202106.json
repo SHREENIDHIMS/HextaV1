@@ -1,0 +1,484 @@
+{
+  "timestamp": "2026-08-06T20:21:03.550334+00:00",
+  "dataset": "retrieval_benchmark",
+  "config": {
+    "rerank_enabled": true,
+    "rerank_model_dir": "C:\\Users\\chait\\OneDrive\\Desktop\\Hexta-main\\Hexta-main\\nlp_models\\reranker",
+    "rerank_model_present": true,
+    "rerank_top_k": 10,
+    "rerank_budget_ms": 200.0,
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "db": "127.0.0.1:5433",
+    "max_results": 100
+  },
+  "queries": [
+    {
+      "id": 1,
+      "question": "what is the minimum credit score for a conventional loan",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what is the minimum credit score for a conventional loan"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 56.88,
+      "latency_ms": 85.02
+    },
+    {
+      "id": 2,
+      "question": "what credit score gets the best rates",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": 38,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Credit Score Requirements for Mortgages",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what credit score get the best rates interest rate"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 58.43,
+      "latency_ms": 69.46
+    },
+    {
+      "id": 3,
+      "question": "what is the minimum credit score for a jumbo loan",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what is the minimum credit score for a jumbo loan"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 60.5,
+      "latency_ms": 74.57
+    },
+    {
+      "id": 4,
+      "question": "what are the mortgage approval requirements",
+      "expected_doc": "Mortgage Approval Requirements",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what are the mortgage approval requirements"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 55.39,
+      "latency_ms": 64.42
+    },
+    {
+      "id": 5,
+      "question": "what is the minimum down payment for an fha loan",
+      "expected_doc": "FHA vs Conventional Loan Comparison",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what is the minimum down payment for an fha loan federal housing administration"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 60.99,
+      "latency_ms": 75.62
+    },
+    {
+      "id": 6,
+      "question": "what is the maximum ltv for a conventional loan",
+      "expected_doc": "Mortgage Approval Requirements",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what is the maximum ltv for a conventional loan loan to value"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 61.8,
+      "latency_ms": 72.08
+    },
+    {
+      "id": 7,
+      "question": "what is the maximum debt to income ratio",
+      "expected_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_chunk_id": 17,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the maximum debt to income ratio"
+      ],
+      "or_rank": 5,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 50.94,
+      "latency_ms": 61.28
+    },
+    {
+      "id": 8,
+      "question": "how is the dti ratio calculated",
+      "expected_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_chunk_id": 16,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "how is the dti ratio calculated debt to income"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 49.48,
+      "latency_ms": 59.16
+    },
+    {
+      "id": 9,
+      "question": "what are typical closing costs",
+      "expected_doc": "Closing Costs and Fees Overview",
+      "gold_chunk_id": 24,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Overview",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what are typical closing costs"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 31.85,
+      "latency_ms": 41.82
+    },
+    {
+      "id": 10,
+      "question": "what is an appraisal fee",
+      "expected_doc": "Closing Costs and Fees Overview",
+      "gold_chunk_id": 26,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Overview",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is an appraisal fee"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 26.9,
+      "latency_ms": 35.58
+    },
+    {
+      "id": 11,
+      "question": "what is the loan estimate",
+      "expected_doc": "Closing Costs and Fees Overview",
+      "gold_chunk_id": 34,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Overview",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the loan estimate"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 50.25,
+      "latency_ms": 58.11
+    },
+    {
+      "id": 12,
+      "question": "what is the difference between fha and conventional loans",
+      "expected_doc": "FHA vs Conventional Loan Comparison",
+      "gold_chunk_id": 48,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "FHA vs Conventional Loan Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the difference between fha and conventional loans federal housing administration"
+      ],
+      "or_rank": 2,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 56.17,
+      "latency_ms": 66.79
+    },
+    {
+      "id": 13,
+      "question": "what is the conventional loan down payment range",
+      "expected_doc": "FHA vs Conventional Loan Comparison",
+      "gold_chunk_id": null,
+      "gold_found_in_chunk": false,
+      "gold_chunk_doc": null,
+      "gold_matches_expected_doc": false,
+      "sub_queries": [
+        "what is the conventional loan down payment range"
+      ],
+      "or_rank": 0,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 51.84,
+      "latency_ms": 61.5
+    },
+    {
+      "id": 14,
+      "question": "how does a lower credit score affect mortgage insurance",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": 39,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Credit Score Requirements for Mortgages",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "how does a lower credit score affect mortgage insurance private mortgage insurance"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 56.77,
+      "latency_ms": 69.85
+    },
+    {
+      "id": 15,
+      "question": "what is the upfront mip for fha loans",
+      "expected_doc": "FHA vs Conventional Loan Comparison",
+      "gold_chunk_id": 48,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "FHA vs Conventional Loan Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the upfront mip for fha loans mortgage insurance premium federal housing administration"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 60.56,
+      "latency_ms": 71.12
+    },
+    {
+      "id": 16,
+      "question": "when do conventional loans charge pmi",
+      "expected_doc": "FHA vs Conventional Loan Comparison",
+      "gold_chunk_id": 48,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "FHA vs Conventional Loan Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "when do conventional loans charge pmi private mortgage insurance"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 51.08,
+      "latency_ms": 61.33
+    },
+    {
+      "id": 17,
+      "question": "what is the maximum front-end housing ratio",
+      "expected_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_chunk_id": 19,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the maximum front-end housing ratio"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 35.99,
+      "latency_ms": 45.16
+    },
+    {
+      "id": 18,
+      "question": "are bonuses and capital gains counted in the dti ratio",
+      "expected_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_chunk_id": 21,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Debt-to-Income (DTI) Ratio Requirements",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "are bonuses and capital again counted in the dti ratio debt to income"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 49.4,
+      "latency_ms": 58.86
+    },
+    {
+      "id": 19,
+      "question": "how much does one discount point cost",
+      "expected_doc": "Closing Costs and Fees Overview",
+      "gold_chunk_id": 32,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Overview",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "how much does one discount point cost"
+      ],
+      "or_rank": 1,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 47.51,
+      "latency_ms": 56.31
+    },
+    {
+      "id": 20,
+      "question": "how can i raise my credit score before applying",
+      "expected_doc": "Credit Score Requirements for Mortgages",
+      "gold_chunk_id": 42,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Credit Score Requirements for Mortgages",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "how can i raise my credit score before applying"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 50.83,
+      "latency_ms": 59.71
+    }
+  ],
+  "summary": {
+    "denominator": 14,
+    "gold_not_found_total": 6,
+    "gold_not_found_ids": [
+      1,
+      3,
+      4,
+      5,
+      6,
+      13
+    ],
+    "rerank_enabled": true,
+    "rerank_model_present": true,
+    "recall_at_1": 0.8571,
+    "recall_at_5": 1.0,
+    "recall_at_10": 1.0,
+    "mrr_10": 0.9071,
+    "retrieval_rate_or": 1.0,
+    "retrieval_rate_and": 0.2857,
+    "and_operator_misses_over_findable": 10,
+    "mrr_or": 0.9071,
+    "mrr_and": 0.2857,
+    "mean_latency_ms": 62.39,
+    "p95_latency_ms": 75.62,
+    "mean_reranker_latency_ms": 51.18,
+    "p95_reranker_latency_ms": 60.99,
+    "reranker_budget_ok": true
+  }
+}
