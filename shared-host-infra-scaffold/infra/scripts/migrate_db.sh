@@ -8,7 +8,20 @@ set -euo pipefail
 # up from its own location, so it works from any cwd.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="${HEXA_BACKEND_DIR:-$(cd "${SCRIPT_DIR}/../../.." && pwd)/backend}"
+
+# Backend location precedence: explicit env override > documented install
+# location (/opt/projects/hexa/backend) > repo checkout (up 3 dirs).
+# The "up 3 dirs" fallback is only correct for a repo checkout; at the
+# documented install path the script lives in
+# /opt/projects/hexa/infra/scripts, so "up 3" wrongly resolves to
+# /opt/projects/backend (X3).
+if [ -n "${HEXA_BACKEND_DIR:-}" ] && [ -d "${HEXA_BACKEND_DIR}" ]; then
+  BACKEND_DIR="${HEXA_BACKEND_DIR}"
+elif [ -d "/opt/projects/hexa/backend" ]; then
+  BACKEND_DIR="/opt/projects/hexa/backend"
+else
+  BACKEND_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)/backend"
+fi
 VENV_DIR="${HEXA_VENV_DIR:-${BACKEND_DIR}/.venv}"
 PYTHON="python3"
 
@@ -20,11 +33,21 @@ fi
 
 cd "${BACKEND_DIR}"
 
-# Load backend/.env so HEXA_DATABASE_URL and HEXA_DB_PASSWORD are available.
+# Load backend/.env so HEXA_DATABASE_URL is available.
 if [ -f "${BACKEND_DIR}/.env" ]; then
   set -a
   # shellcheck disable=SC1091
   source "${BACKEND_DIR}/.env"
+  set +a
+fi
+
+# Load the shared infra .env so POSTGRES_SUPERUSER_PASSWORD is available
+# (it lives with the docker-compose, NOT backend/.env — X4).
+SHARED_DIR="${HEXA_SHARED_DIR:-$(cd "${SCRIPT_DIR}/../shared" && pwd)}"
+if [ -f "${SHARED_DIR}/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${SHARED_DIR}/.env"
   set +a
 fi
 

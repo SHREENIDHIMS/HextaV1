@@ -20,6 +20,14 @@ networks:
   shared_net:
     name: shared_net
     driver: bridge
+    # Pinned subnet: the host-side gateway (172.20.0.1) is what the
+    # systemd backend socket binds to and what host-gateway resolves to.
+    # Keeping it deterministic lets us bind the backend to a non-public
+    # address instead of 0.0.0.0 (Phase 2 hardening). 172.20.0.0/16 is
+    # outside Docker's default bridge pool and AWS free-tier VPC ranges.
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
   pg_data:
@@ -44,7 +52,7 @@ services:
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     ports:
-      - "127.0.0.1:5433:5432"   # bind to localhost only — never expose publicly
+      - "127.0.0.1:15432:5432"   # bind to localhost only — never expose publicly. Non-default port avoids conflicts with other projects on shared host.
     deploy:
       resources:
         limits:
@@ -62,12 +70,18 @@ services:
     networks:
       - shared_net
     extra_hosts:
-      - "host.docker.internal:host-gateway"   # lets nginx reach the host's systemd-activated backend on 8001
+      - "host.docker.internal:host-gateway"   # lets nginx reach the host's systemd-activated backend on 18001
     ports:
+      # Only 80 published. 443 was previously published with nothing
+      # listening (no TLS anywhere on the host) — removed in Phase 2.
+      # Terminate TLS here (or at a CDN/ALB) before going live.
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # Each project's static export is mounted read-only at a stable
+      # container path (/var/www/<project>), which the per-project
+      # server block roots at. Add your project's out dir here.
+      - ${HEXA_FRONTEND_OUT:-/opt/projects/hexa/frontend/out}:/var/www/hexa:ro
     deploy:
       resources:
         limits:

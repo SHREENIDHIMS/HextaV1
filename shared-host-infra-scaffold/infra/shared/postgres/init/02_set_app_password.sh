@@ -7,8 +7,12 @@
 set -euo pipefail
 
 if [ -n "${POSTGRES_APP_PASSWORD:-}" ]; then
+  # Bind the password as a psql variable (`:'name'` quoting) instead of
+  # interpolating it into the SQL string — a `'` in the password would
+  # otherwise break the statement (X11).
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname hexa_assistant \
-    -c "ALTER ROLE hexa_app WITH LOGIN PASSWORD '${POSTGRES_APP_PASSWORD}';"
+    -v app_password="$POSTGRES_APP_PASSWORD" \
+    -c "ALTER ROLE hexa_app WITH LOGIN PASSWORD :'app_password';"
   echo "hexa_app password provisioned from environment."
 else
   echo "POSTGRES_APP_PASSWORD not set — hexa_app has no password yet; run scripts/migrate_db.sh to provision it."

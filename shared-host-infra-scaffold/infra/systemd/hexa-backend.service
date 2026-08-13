@@ -16,7 +16,11 @@ EnvironmentFile=/opt/projects/hexa/backend/.env
 ExecStart=/opt/projects/hexa/backend/.venv/bin/uvicorn \
     app.main:app --workers 1 --fd 3
 
-MemoryMax=200M
+# Two ONNX runtimes (fastembed bge-small + Int8 cross-encoder) plus uvicorn
+# and the psycopg pool in one process; 200M held the app at ~98% and
+# starved the reranker (rule-6 <200ms budget). Raised to 384M — parity with
+# this host's compose stack and asto_backend (CLAUDE.md rule 10 investigation).
+MemoryMax=384M
 CPUWeight=50
 
 Restart=on-failure

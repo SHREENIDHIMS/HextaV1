@@ -1,13 +1,23 @@
 [Unit]
 Description=Socket for on-demand activation of hexa-backend
 
-# The shared_nginx container reaches the host backend through
-# host.docker.internal (host-gateway), which resolves to the docker
-# bridge gateway IP — NOT 127.0.0.1. Bind on all interfaces so the
-# proxy can connect; restrict externally via the host firewall /
-# EC2 security group (only 80/443 should be open inbound).
+# Security (Phase 2): the backend is NOT reachable on any external
+# interface — no 0.0.0.0 bind, no TLS needed because only loopback/
+# docker-bridge traffic ever reaches it.
+#
+# The shared_nginx container reaches the host backend via
+# host.docker.internal (host-gateway). That resolves to the gateway of
+# the `shared_net` bridge network, which this scaffold pins to a fixed
+# subnet (172.20.0.0/16 — see infra/shared/docker-compose.yml), so the
+# host-side gateway address is deterministically 172.20.0.1. Binding
+# the socket to that address means:
+#   - containers on shared_net (nginx) can connect
+#   - nothing on the public internet / host LAN can (the address only
+#     exists on the docker bridge interface)
+# External exposure is further closed by the EC2 security group, which
+# should only open 80/443 inbound.
 [Socket]
-ListenStream=0.0.0.0:8001
+ListenStream=172.20.0.1:18001
 Accept=no
 
 [Install]

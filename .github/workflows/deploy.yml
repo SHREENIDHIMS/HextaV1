@@ -1,10 +1,10 @@
-name: Deploy
+﻿name: Deploy
 
 on:
   # Deploy is intentionally gated. Building/testing runs automatically on
   # every push to main, but the EC2 deploy step only fires when this
   # workflow is run manually with deploy=true, or when the `DEPLOY_ENABLED`
-  # repo variable (Repo Settings → Variables → Actions) is set to "true".
+  # repo variable (Repo Settings â†’ Variables â†’ Actions) is set to "true".
   push:
     branches: [main]
   workflow_dispatch:
@@ -89,9 +89,9 @@ jobs:
           if-no-files-found: error
 
   deploy:
-    # Real EC2 deployment. Only runs when explicitly requested — either a
+    # Real EC2 deployment. Only runs when explicitly requested â€” either a
     # manual `workflow_dispatch` with deploy=true, OR a push to main while the
-    # `DEPLOY_ENABLED` repo variable (Repo Settings → Variables → Actions) is
+    # `DEPLOY_ENABLED` repo variable (Repo Settings â†’ Variables â†’ Actions) is
     # "true". The `vars` context is the only toggle legal in a job-level
     # `if:`: GitHub evaluates `if` BEFORE `env`/`secrets` are populated, so the
     # previous `env.DEPLOY_ENABLED` reference made this workflow fail to parse
@@ -127,7 +127,7 @@ jobs:
           path: backend
 
       - name: Sync frontend to EC2
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@v5.1.2
         with:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           REMOTE_HOST: ${{ secrets.EC2_HOST }}
@@ -137,7 +137,7 @@ jobs:
           SCRIPT_BEFORE: "mkdir -p /opt/projects/hexa/frontend/out"
 
       - name: Sync backend to EC2
-        uses: easingthemes/ssh-deploy@main
+        uses: easingthemes/ssh-deploy@v5.1.2
         with:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           REMOTE_HOST: ${{ secrets.EC2_HOST }}
@@ -145,8 +145,21 @@ jobs:
           SOURCE: "backend/"
           TARGET: "/opt/projects/hexa/backend"
           SCRIPT_BEFORE: "mkdir -p /opt/projects/hexa/backend"
+          # Never overwrite host-provisioned secrets, the venv (rebuilt on
+          # the host), runtime storage, or downloaded ML models.
+          EXCLUDE: ".env,.venv,storage,nlp_models"
 
-      - name: Reload services on EC2
+      - name: Sync infra to EC2
+        uses: easingthemes/ssh-deploy@v5.1.2
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_USER: ${{ secrets.EC2_USER }}
+          SOURCE: "shared-host-infra-scaffold/infra/"
+          TARGET: "/opt/projects/hexa/infra"
+          SCRIPT_BEFORE: "mkdir -p /opt/projects/hexa/infra"
+
+      - name: Provision and reload services on EC2
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -154,13 +167,75 @@ jobs:
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/projects/hexa
-            # Recreate/refresh the virtualenv if the Python toolchain changed
-            if [ ! -x backend/.venv/bin/python ]; then
-              python3 -m venv backend/.venv
+            PROJ=/opt/projects/hexa
+
+            # --- Provision infra/shared/.env once (S4): strong random secrets ---
+            SHARED_ENV="$PROJ/infra/shared/.env"
+            if [ ! -f "$SHARED_ENV" ]; then
+              mkdir -p "$(dirname "$SHARED_ENV")"
+              cat > "$SHARED_ENV" <<EOF
+            POSTGRES_SUPERUSER=admin
+            POSTGRES_SUPERUSER_PASSWORD=$(openssl rand -base64 18 | tr -d '\n')
+            POSTGRES_APP_PASSWORD=$(openssl rand -base64 18 | tr -d '\n')
+            EOF
+              chmod 600 "$SHARED_ENV"
             fi
-            backend/.venv/bin/pip install -r backend/requirements.txt >/dev/null
-            # Refresh infra units and reload nginx
+
+            # --- Provision backend/.env once (X6): unit needs it to start ---
+            BACKEND_ENV="$PROJ/backend/.env"
+            if [ ! -f "$BACKEND_ENV" ]; then
+              set -a; source "$SHARED_ENV"; set +a
+              cat > "$BACKEND_ENV" <<EOF
+            HEXA_APP_NAME=Hexta
+            HEXA_ENVIRONMENT=production
+            HEXA_API_PREFIX=/api/v1
+            HEXA_DATABASE_URL=postgresql://hexa_app:${POSTGRES_APP_PASSWORD}@127.0.0.1:15432/hexa_assistant
+            HEXA_DATABASE_POOL_MAX=4
+            HEXA_DATABASE_POOL_TIMEOUT_S=30
+            HEXA_JWT_SECRET=$(openssl rand -hex 32)
+            HEXA_JWT_ALGORITHM=HS256
+            HEXA_JWT_EXPIRY_MINUTES=480
+            HEXA_CORS_ORIGINS=${HEXA_CORS_ORIGINS:-http://localhost}
+            HEXA_EMBEDDING_ENABLED=true
+            HEXA_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+            HEXA_EMBEDDING_CACHE_DIR=nlp_models/embeddings
+            HEXA_EMBEDDING_DIM=384
+            HEXA_STORAGE_PENDING_DIR=storage/pending
+            HEXA_STORAGE_PROCESSED_DIR=storage/processed
+            HEXA_MAX_UPLOAD_BYTES=20971520
+            HEXA_BM25_LIMIT=25
+            HEXA_VECTOR_LIMIT=25
+            HEXA_MAX_SUB_QUERIES=4
+            HEXA_MIN_CONFIDENCE_NO_ANSWER=50.0
+            HEXA_MAX_EXCERPT_CHARS=600
+            HEXA_MAX_EVIDENCE_DOCS=3
+            HEXA_AUTO_CREATE_SCHEMA=true
+            HEXA_AUDIT_ENABLED=true
+            HEXA_RERANK_ENABLED=true
+            HEXA_RERANK_MODEL_DIR=nlp_models/reranker
+            EOF
+              chmod 600 "$BACKEND_ENV"
+            fi
+
+            # Recreate/refresh the virtualenv if the Python toolchain changed
+            if [ ! -x "$PROJ/backend/.venv/bin/python" ]; then
+              python3 -m venv "$PROJ/backend/.venv"
+            fi
+            "$PROJ/backend/.venv/bin/pip" install -r "$PROJ/backend/requirements.txt" >/dev/null
+
+            # --- Install systemd units (X2): replace the old `systemctl
+            # restart nginx`, which aborts because system nginx is not
+            # installed. Socket activation + idle timer drive the backend. ---
+            sudo cp "$PROJ"/infra/systemd/*.service "$PROJ"/infra/systemd/*.socket "$PROJ"/infra/systemd/*.timer /etc/systemd/system/
             sudo systemctl daemon-reload
-            sudo systemctl restart nginx
+            sudo systemctl enable --now hexa-backend.socket
+            sudo systemctl enable --now hexa-backend-idle.timer
+            sudo systemctl try-restart hexa-backend.service || true
+
+            # --- Shared nginx runs in Docker (configs mounted read-only) ---
+            # Recreate the nginx container so updated conf.d / new mounts
+            # take effect. Do NOT restart a system nginx â€” there is none.
+            cd "$PROJ/infra/shared"
+            docker compose up -d --force-recreate nginx
+
             echo "Deploy complete: /opt/projects/hexa"

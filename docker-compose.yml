@@ -1,48 +1,142 @@
 # Local "all-in-one" stack for the Hexta assistant.
-# Brings up the frontend (static Next.js export on :3000) and the backend
-# (FastAPI, single worker, on :8001) in containers under one command.
-#
-# Postgres is intentionally NOT defined here: per the architecture, one shared
-# Postgres instance serves the host, and on this dev box it already runs locally
-# on 5433. The backend container reaches it via host.docker.internal:5433
-# (Windows / Docker Desktop host networking) — no per-project Postgres container.
+# Brings up three containers under the `hexta-main` compose project:
+#   - shared_postgres  (pgvector Postgres, one instance for the host)
+#   - frontend         (static Next.js export on :13000)
+#   - backend          (FastAPI, single worker, on :18001)
 #
 # Usage:
 #   docker compose up --build -d      # build (first time) and start
 #   docker compose stop               # stop
-#   docker compose down               # stop and remove
+#   docker compose down               # stop and remove (keeps shared_pg_data)
 #
-# Frontend kit API calls hit http://localhost:8001/api/v1 (NEXT_PUBLIC_API_URL,
+# Frontend kit API calls hit http://localhost:18001/api/v1 (NEXT_PUBLIC_API_URL,
 # baked at frontend build time), which maps here to the backend service.
+#
+# The Postgres service here IS the shared Postgres: it reuses the same
+# `shared_pg_data` volume, init scripts, and postgresql.conf as
+# shared-host-infra-scaffold/infra/shared/docker-compose.yml, so a host that
+# previously ran the shared compose can adopt this stack without losing data.
+# Do NOT run both compose files for postgres on the same host (same
+# container_name `shared_postgres`).
+#
+# NOTE (X9): this stack and the production systemd socket both bind port
+# 18001 and are mutually exclusive. Run EITHER `docker compose up` (local
+# dev, above) OR the systemd socket-activated backend (shared-host-infra-
+# scaffold/infra/systemd) — never both on the same host at the same time.
+
+name: hexta-main
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg16   # Debian-based, ships pgvector — avoid alpine here
+    container_name: shared_postgres
+    restart: unless-stopped
+    # DB credentials come from the shared .env (single source of truth for the
+    # hexa_app role password). POSTGRES_SUPERUSER/POSTGRES_APP_PASSWORD are
+    # only consumed on first boot of an empty data dir — an existing
+    # shared_pg_data volume is left untouched.
+    env_file:
+      - ./shared-host-infra-scaffold/infra/shared/.env
+    environment:
+      POSTGRES_DB: postgres
+    volumes:
+      - shared_pg_data:/var/lib/postgresql/data
+      - ./shared-host-infra-scaffold/infra/shared/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./shared-host-infra-scaffold/infra/shared/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    ports:
+      - "127.0.0.1:15432:5432"   # bind to localhost only — never expose publicly.
+    networks:
+      - shared_net
+    deploy:
+      resources:
+        limits:
+          memory: 200m           # CLAUDE.md rule 10 — capped like the production unit.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: hexta-backend
     ports:
-      - "8001:8001"
+      - "18001:8001"
     environment:
-      HEXA_DATABASE_URL: "postgresql://hexa_app:devpass@host.docker.internal:5433/hexa_assistant"
+      # Connect to the shared Postgres container on the shared_net network,
+      # now managed by this compose file (the `postgres` service above).
+      # The app password MUST match the hexa_app role in the shared Postgres
+      # (POSTGRES_APP_PASSWORD in shared-host-infra-scaffold/infra/shared/.env).
+      # Pass it explicitly when starting:  $env:POSTGRES_APP_PASSWORD=<shared value>
+      HEXA_DATABASE_URL: "postgresql://hexa_app:${POSTGRES_APP_PASSWORD:-devpass}@shared_postgres:5432/hexa_assistant"
       HEXA_ENVIRONMENT: development
-      HEXA_CORS_ORIGINS: "*"
+      HEXA_CORS_ORIGINS: "http://localhost:13000"
       HEXA_RERANK_ENABLED: "True"
+      # Absolute paths matching the /nlp_models and /app/storage volume mounts
       HEXA_RERANK_MODEL_DIR: "/nlp_models/reranker"
+      HEXA_EMBEDDING_CACHE_DIR: "/nlp_models/embeddings"
+      HEXA_STORAGE_PENDING_DIR: "/app/storage/pending"
+      HEXA_STORAGE_PROCESSED_DIR: "/app/storage/processed"
+      HEXA_AUTO_CREATE_SCHEMA: "true"
     volumes:
       # Reuse the host models so rerank + embedding parity match the host run.
+      # Models are pre-staged in ./nlp_models (see repo) and mounted READ-ONLY:
+      # the reranker + embedding model must be downloaded to the host BEFORE
+      # `docker compose up`, otherwise first-run download inside the container
+      # would fail against a read-only mount (X10). To pre-stage:
+      #   cd backend && .venv/Scripts/python -m app.documents.ingest_batch --queue-dir storage/pending
+      # (or run the host ingestion once so fastembed caches into nlp_models/embeddings).
       - ./nlp_models:/nlp_models:ro
+      # Persist uploaded files and processed documents across container restarts
+      - hexa_storage:/app/storage
+    networks:
+      - shared_net
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          # Two ONNX runtimes (fastembed bge-small + Int8 cross-encoder),
+          # uvicorn, and the psycopg pool share one process; 200MB holds the
+          # app at ~98% and OOM-starves the reranker (erasing the rule-6
+          # <200ms budget). Measured peak ~330MB → cap at 384MB like
+          # asto_backend on this host (see CLAUDE.md rule 10 investigation).
+          memory: 384m
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:18001/api/v1"
     container_name: hexta-frontend
     ports:
-      - "3000:80"
-    environment:
-      # Frontend reads NEXT_PUBLIC_API_URL only at build time (static export),
-      # so it is NOT settable at runtime here; the service is reachable via :8001.
-      _NOTE: "frontend API base is baked at build (default http://localhost:8001/api/v1)"
+      - "13000:80"
+    networks:
+      - shared_net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          # CLAUDE.md rule 10 — nginx static export is tiny.
+          memory: 30m
+
+networks:
+  # Shared with shared-host-infra-scaffold so the prod nginx / systemd units
+  # (172.20.0.1 host gateway) and other projects can still reach this stack.
+  shared_net:
+    external: true
+    name: shared_net
+
+volumes:
+  hexa_storage:
+  # The one shared Postgres data volume — declared external so this stack
+  # adopts the existing data instead of creating a fresh empty database.
+  shared_pg_data:
+    external: true
+    name: shared_pg_data

@@ -49,13 +49,13 @@ sudo systemctl enable --now hexa-backend-idle.timer
 ```
 
 The backend process does **not** start yet — it starts on the first
-real request to port 8001, and stops again after 10 idle minutes.
+real request to port 18001, and stops again after 10 idle minutes.
 Verify:
 
 ```bash
 sudo systemctl status hexa-backend.socket    # active (listening)
 sudo systemctl status hexa-backend.service    # inactive (dead) until first request
-curl http://127.0.0.1:8001/health
+curl http://127.0.0.1:18001/health
 sudo systemctl status hexa-backend.service    # now active (running)
 ```
 

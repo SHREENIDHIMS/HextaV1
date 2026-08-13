@@ -15,7 +15,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="${HEXA_BACKEND_DIR:-$(cd "${SCRIPT_DIR}/../../.." && pwd)/backend}"
+
+# Backend location precedence: explicit env override > documented install
+# location (/opt/projects/hexa/backend) > repo checkout (up 3 dirs).
+# The "up 3 dirs" fallback is only correct for a repo checkout; at the
+# documented install path the script lives in
+# /opt/projects/hexa/infra/scripts, so "up 3" wrongly resolves to
+# /opt/projects/backend (X3).
+if [ -n "${HEXA_BACKEND_DIR:-}" ] && [ -d "${HEXA_BACKEND_DIR}" ]; then
+  BACKEND_DIR="${HEXA_BACKEND_DIR}"
+elif [ -d "/opt/projects/hexa/backend" ]; then
+  BACKEND_DIR="/opt/projects/hexa/backend"
+else
+  BACKEND_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)/backend"
+fi
 VENV_DIR="${HEXA_VENV_DIR:-${BACKEND_DIR}/.venv}"
 PYTHON="${VENV_DIR}/bin/python"
 [ -x "${PYTHON}" ] || PYTHON="${VENV_DIR}/Scripts/python"
