@@ -65,9 +65,12 @@ Companion docs (read these for full detail, this file is the summary):
    onnxruntime/spaCy/GLiNER. Never `python:3.11-alpine`** for those — musl
    libc breaks compiled ML dependencies. `nginx:alpine` is fine (no ML deps).
 10. **Memory is capped per-service** (Postgres ~200MB, Nginx ~30MB, backend
-    ~200MB — see `infra/shared/docker-compose.yml` and the systemd units).
+    ~384MB — see `infra/shared/docker-compose.yml` and the systemd units).
     Don't remove these caps to "fix" an OOM — investigate why the service
-    needs more memory first.
+    needs more memory first. The backend cap was raised 200→384MB after
+    investigation (rule 6 budgeting was being erased by memory starvation:
+    two ONNX runtimes in one process). Treat the 384MB figure as
+    benchmark-backed; re-check before raising further.
 
 ## When adding a new feature
 

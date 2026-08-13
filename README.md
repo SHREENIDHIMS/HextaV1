@@ -196,8 +196,7 @@ HEXTA/
 │   │   ├── integration/      # RBAC enforcement tests
 │   │   └── conftest.py       # DB mocking for unit tests
 │   ├── requirements.txt      # Pinned dependencies
-│   ├── Dockerfile            # python:3.11-slim, --workers 1
-│   └── debug_imports.py      # Import verification
+│   └── Dockerfile            # python:3.11-slim, --workers 1
 │
 ├── frontend/                  # Next.js 15 static frontend
 │   ├── app/                  # Pages (static export)
@@ -237,7 +236,7 @@ HEXTA/
 docker run -d --name postgres \
   -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=adminpass \
   -e POSTGRES_DB=hexa_assistant \
-  -p 5432:5432 \
+  -p 15432:5432 \
   pgvector/pgvector:pg16
 
 # 2. Create and activate a Python virtual environment
@@ -287,7 +286,7 @@ sudo systemctl enable --now hexa-backend.socket
 sudo systemctl enable --now hexa-backend-idle.timer
 
 # 3. Set secrets
-export HEXA_DATABASE_URL=postgresql://hexa_app:S3CRET@127.0.0.1:5432/hexa_assistant
+export HEXA_DATABASE_URL=postgresql://hexa_app:S3CRET@127.0.0.1:15432/hexa_assistant
 export HEXA_JWT_SECRET="at-least-32-char-secret-key-here"
 
 # 4. Seed schema (if not auto-created)
@@ -298,7 +297,7 @@ bash infra/scripts/run_ingestion.sh
 
 # 6. Build frontend (static)
 cd frontend
-npm run build && npx serve -s out -p 3000
+npm run build && npx serve -s out -p 13000
 ```
 
 ---

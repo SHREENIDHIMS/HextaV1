@@ -85,9 +85,9 @@ cd Hexta-main/Hexta-main      # the mortgage-assistant repo (note: doubled name)
 docker compose up --build -d   # builds backend+frontend, mounts nlp_models, rerank ON
 docker compose logs -f         # watch
 ```
-- Frontend: `http://localhost:3000`
-- Backend API/docs: `http://localhost:8001/api/v1/docs`
-- DB: `localhost:5433` (shared Postgres already running)
+- Frontend: `http://localhost:13000`
+- Backend API/docs: `http://localhost:18001/api/v1/docs`
+- DB: `localhost:15432` (shared Postgres already running)
 - Admin login: `admin@hexa.local` / `adminpass`
 
 Compose mounts `./nlp_models:/nlp_models:ro` and sets `HEXA_RERANK_ENABLED=True`,
@@ -100,7 +100,7 @@ cd backend && .venv\Scripts\python.exe -m uvicorn app.main:app --workers 1 --rel
 # terminal 2 — frontend (hot reload)
 cd frontend && npm run dev
 ```
-Backend default DB url = `postgresql://hexa_app:devpass@127.0.0.1:5433/assistant`.
+Backend default DB url = `postgresql://hexa_app:devpass@127.0.0.1:15432/hexa_assistant`.
 
 ### Option C — production-ish on this host (systemd)
 Use the socket-activated units in `shared-host-infra-scaffold/infra/`
@@ -132,10 +132,11 @@ Use the socket-activated units in `shared-host-infra-scaffold/infra/`
   `routing=answer`, confidence 98.4–100, verbatim excerpts with citations.
 
 ## 7. Next steps (when you're ready)
-- Browser-based visual check of the 3D Orb + auto-scroll + sidebar on `localhost:3000`.
+- Browser-based visual check of the 3D Orb + auto-scroll + sidebar on `localhost:13000`.
 - Wire `/admin` to real admin endpoints + a `/settings` form for JWT secret/
   CORS (currently informational).
 - Add a real Analytics dashboard (audit log → charts).
+
 - For AWS EC2: use `infra/shared` compose for Postgres+Nginx, socket-activate
   the backend, set a billing alarm — see `infra/README.md`.
 
