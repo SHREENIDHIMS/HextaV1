@@ -21,14 +21,13 @@ import {
   ApiError,
 } from "@/lib/api-client";
 
-const ACCEPTED = ".pdf,.doc,.docx,.txt";
+const ACCEPTED = ".pdf,.docx,.txt";
 const ACCEPTED_MIME = [
   "application/pdf",
-  "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "text/plain",
 ];
-const MAX_MB = 50;
+const MAX_MB = 20;
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -300,7 +299,7 @@ export default function UploadsPage() {
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      PDF, DOC, DOCX, TXT — max {MAX_MB} MB
+                      PDF, DOCX, TXT — max {MAX_MB} MB
                     </p>
                   </div>
                 </>

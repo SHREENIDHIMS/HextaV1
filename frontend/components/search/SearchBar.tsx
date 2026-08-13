@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SearchBarProps {
@@ -22,12 +22,10 @@ export default function SearchBar({
   const [query, setQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-focus on mount
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
 
-  // Auto-resize textarea (max ~4 rows)
   const resize = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -44,7 +42,6 @@ export default function SearchBar({
     if (trimmed && !isLoading) {
       onSearch(trimmed);
       setQuery("");
-      // Reset height
       if (textareaRef.current) textareaRef.current.style.height = "auto";
     }
   };
@@ -94,21 +91,21 @@ export default function SearchBar({
           "
         />
 
-        {/* Actions row */}
-        <div className="flex items-center gap-2 pb-0.5 shrink-0">
+        {/* Character count + action buttons */}
+        <div className="mt-2 flex items-center gap-1.5">
           {/* Character count */}
           {query.length > 0 && (
             <span
               className={cn(
                 "text-[10px] font-medium tabular-nums transition-colors duration-200",
-                nearLimit ? "text-amber-500" : "text-muted-foreground/40"
+                nearLimit ? "text-warning" : "text-muted-foreground/40"
               )}
             >
               {remaining}
             </span>
           )}
 
-          {/* Send button */}
+          {/* Send button — accent color, disabled when empty */}
           <button
             type="button"
             onClick={handleSubmit}
@@ -119,14 +116,14 @@ export default function SearchBar({
               "flex size-8 items-center justify-center rounded-xl transition-all duration-200",
               "focus-visible:ring-2 focus-visible:ring-ring outline-none",
               query.trim() && !isLoading
-                ? "gradient-brand text-white hover:opacity-90 hover:shadow-md hover:shadow-primary/30 active:scale-95"
+                ? "gradient-brand text-primary-foreground hover:opacity-90 hover:shadow-md hover:shadow-primary/30 active:scale-95"
                 : "bg-muted text-muted-foreground cursor-not-allowed"
             )}
           >
             {isLoading ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <ArrowUp className="size-4" />
+              <Send className="size-4" />
             )}
           </button>
         </div>

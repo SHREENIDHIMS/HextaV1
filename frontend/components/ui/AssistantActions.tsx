@@ -5,22 +5,33 @@ import {
   BookOpen,
   Check,
   Copy,
-  Pause,
-  Play,
+  Speaker,
+  VolumeX,
   RefreshCw,
   ThumbsDown,
   ThumbsUp,
+  MoreHorizontal,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { submitFeedback, ApiError } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
+import ConfidenceBadge from "@/components/search/ConfidenceBadge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AssistantActionsProps {
   answerText: string;
   responseId: string;
   token: string | null;
   userQuery?: string;
+  confidence?: number;
+  routing?: "answer" | "partial" | "no_answer";
   onRegenerate?: (query: string) => void;
   sourcesOpen?: boolean;
   onToggleSources?: () => void;
@@ -86,26 +97,27 @@ function ActionBtn({
   children,
 }: ActionBtnProps) {
   return (
-    <button
+    <Button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
+      variant="ghost"
+      size="icon"
       className={cn(
-        "group/btn relative flex size-7 items-center justify-center rounded-lg transition-all duration-150",
+        "group/btn relative size-8 rounded-lg",
         "text-muted-foreground hover:text-foreground hover:bg-muted/80",
         "focus-visible:ring-2 focus-visible:ring-ring outline-none",
         "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent",
         active && activeClass
       )}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
     >
       {children}
-      {/* Tooltip */}
-      <span className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover border border-border/60 px-2 py-1 text-[10px] text-popover-foreground shadow-md opacity-0 group-hover/btn:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
+      <span className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-popover border border-border/60 px-2 py-1 text-[10px] text-popover-foreground shadow-md opacity-0 group-hover/btn:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
         {label}
       </span>
-    </button>
+    </Button>
   );
 }
 
@@ -114,6 +126,8 @@ export default function AssistantActions({
   responseId,
   token,
   userQuery,
+  confidence,
+  routing,
   onRegenerate,
   sourcesOpen,
   onToggleSources,
@@ -130,7 +144,7 @@ export default function AssistantActions({
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // clipboard may be unavailable in some contexts
+      /* clipboard may be unavailable */
     }
   }, [answerText]);
 
@@ -169,18 +183,18 @@ export default function AssistantActions({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15, duration: 0.25 }}
-      className="mt-2 flex items-center gap-0.5"
+      className="mt-2 flex items-center gap-1"
     >
       {/* Copy */}
       <ActionBtn onClick={handleCopy} label={copied ? "Copied!" : "Copy answer"}>
         {copied ? (
-          <Check className="size-3.5 text-green-500" />
+          <Check className="size-4 text-success" />
         ) : (
-          <Copy className="size-3.5" />
+          <Copy className="size-4" />
         )}
       </ActionBtn>
 
-      {/* Read aloud */}
+      {/* Read aloud — speaker icon */}
       <ActionBtn
         onClick={handleReadAloud}
         disabled={!answerText}
@@ -189,9 +203,9 @@ export default function AssistantActions({
         activeClass="text-primary bg-primary/10"
       >
         {speaking ? (
-          <Pause className="size-3.5" />
+          <VolumeX className="size-4" />
         ) : (
-          <Play className="size-3.5" />
+          <Speaker className="size-4" />
         )}
       </ActionBtn>
 
@@ -201,19 +215,19 @@ export default function AssistantActions({
         disabled={!userQuery || onRegenerate == null}
         label="Regenerate"
       >
-        <RefreshCw className="size-3.5" />
+        <RefreshCw className="size-4" />
       </ActionBtn>
 
       {/* Divider */}
       <div className="mx-1 h-4 w-px bg-border/60" />
 
-      {/* Thumbs up */}
+      {/* Thumbs up — uses semantic success color */}
       <ActionBtn
         onClick={() => handleRate(1)}
         disabled={submitting || rating !== null}
         label="Good response"
         active={rating === 1}
-        activeClass="text-green-500 bg-green-500/10"
+        activeClass="text-success bg-success/10"
       >
         {rating === 1 ? (
           <motion.span
@@ -221,20 +235,20 @@ export default function AssistantActions({
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
           >
-            <ThumbsUp className="size-3.5 fill-current" />
+            <ThumbsUp className="size-4 fill-current" />
           </motion.span>
         ) : (
-          <ThumbsUp className="size-3.5" />
+          <ThumbsUp className="size-4" />
         )}
       </ActionBtn>
 
-      {/* Thumbs down */}
+      {/* Thumbs down — uses semantic error color */}
       <ActionBtn
         onClick={() => handleRate(-1)}
         disabled={submitting || rating !== null}
         label="Bad response"
         active={rating === -1}
-        activeClass="text-red-400 bg-red-400/10"
+        activeClass="text-error bg-error/10"
       >
         {rating === -1 ? (
           <motion.span
@@ -242,10 +256,10 @@ export default function AssistantActions({
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
           >
-            <ThumbsDown className="size-3.5 fill-current" />
+            <ThumbsDown className="size-4 fill-current" />
           </motion.span>
         ) : (
-          <ThumbsDown className="size-3.5" />
+          <ThumbsDown className="size-4" />
         )}
       </ActionBtn>
 
@@ -259,13 +273,48 @@ export default function AssistantActions({
             active={sourcesOpen}
             activeClass="text-primary bg-primary/10"
           >
-            <BookOpen className="size-3.5" />
+            <BookOpen className="size-4" />
           </ActionBtn>
         </>
       )}
 
+      {/* More — dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "size-8 rounded-lg text-muted-foreground",
+              "hover:text-foreground hover:bg-muted/80",
+              "focus-visible:ring-2 focus-visible:ring-ring outline-none"
+            )}
+            aria-label="More options"
+            title="More"
+          >
+            <MoreHorizontal className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => onRegenerate?.(userQuery ?? "")}>
+            Regenerate
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleCopy}>
+            Copy answer
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Confidence badge (secondary position) */}
+      {confidence != null && (
+        <div className="ml-1">
+          <ConfidenceBadge confidence={confidence} routing={routing ?? "answer"} size="sm" />
+        </div>
+      )}
+
       {error && (
-        <span role="alert" className="ml-2 text-xs text-red-400">
+        <span role="alert" className="ml-2 text-xs text-error">
           {error}
         </span>
       )}

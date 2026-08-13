@@ -14,26 +14,32 @@ import {
   Shield,
   SquarePen,
   Upload,
-  X,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
 import { Orb } from "@/components/ui/orb";
+import { Badge } from "@/components/ui/badge";
 
 const navMain = [
   { label: "Chat", href: "/", icon: MessageSquare },
-  { label: "Doc Upload", href: "/uploads", icon: Upload },
-  { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  { label: "Doc Upload", href: "/uploads", icon: Upload, adminOnly: true },
+  { label: "Analytics", href: "/analytics", icon: BarChart3, adminOnly: true },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 const navAdmin = [{ label: "Admin", href: "/admin", icon: Shield }];
 
 type NavItem = (typeof navMain)[number];
+
+const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+
+function isAdminRole(role: string): boolean {
+  return ADMIN_ROLES.has(role);
+}
 
 function getUserInitials(token: string): string {
   try {
@@ -51,6 +57,15 @@ function getUserEmail(token: string): string {
     return payload.email || "user@hexa.local";
   } catch {
     return "user@hexa.local";
+  }
+}
+
+function getUserRole(token: string): string {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role || "user";
+  } catch {
+    return "user";
   }
 }
 
@@ -98,9 +113,8 @@ function NavLinks({
                 : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
             )}
           >
-            {/* Active indicator bar */}
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full gradient-brand" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-primary" />
             )}
             <item.icon
               className={cn(
@@ -143,16 +157,75 @@ function BrandHeader({
   );
 }
 
+/* ── User profile block with role badge ── */
+function UserProfile({
+  token,
+  collapsed,
+}: {
+  token: string;
+  collapsed: boolean;
+}) {
+  const initials = getUserInitials(token);
+  const email = getUserEmail(token);
+  const role = getUserRole(token);
+
+  const roleColor = role === "admin" ? "text-warning" : "text-primary";
+  const roleBg =
+    role === "admin"
+      ? "bg-warning/10 border-warning/20"
+      : "bg-primary/10 border-primary/20";
+
+  if (collapsed) {
+    return (
+      <div className="flex justify-center px-3 pb-3">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          {initials}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-3 pb-3">
+      <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/30 p-3">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-foreground truncate">
+            {email}
+          </p>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[9px] font-medium px-1.5 py-0",
+                roleBg,
+                roleColor
+              )}
+            >
+              {role}
+            </Badge>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar({
   onSignOut,
   onNewChat,
+  mobileOpen = false,
+  onMobileClose,
 }: {
   onSignOut?: () => void;
   onNewChat?: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = () => {
     clearToken();
@@ -169,25 +242,10 @@ export default function Sidebar({
   const token = getToken();
   if (!token || isTokenExpired(token)) return null;
 
-  const initials = getUserInitials(token);
-  const email = getUserEmail(token);
-
-  const collapseButton = (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      onClick={() => setCollapsed((c) => !c)}
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      className="text-muted-foreground hover:text-foreground size-8"
-    >
-      {collapsed ? (
-        <PanelLeftOpen className="size-4" />
-      ) : (
-        <PanelLeftClose className="size-4" />
-      )}
-    </Button>
+  const role = getUserRole(token);
+  const isAdmin = isAdminRole(role);
+  const visibleMain = navMain.filter(
+    (item) => !item.adminOnly || isAdmin
   );
 
   const sidebarContent = (
@@ -237,7 +295,7 @@ export default function Sidebar({
           <section aria-label="Workspace">
             <SectionLabel collapsed={isCollapsed}>Workspace</SectionLabel>
             <NavLinks
-              items={navMain}
+              items={visibleMain}
               collapsed={isCollapsed}
               onNavigate={onNav}
             />
@@ -245,41 +303,26 @@ export default function Sidebar({
         </nav>
 
         {/* Admin Section */}
-        <div className="px-2 pb-2">
-          <div className="rounded-xl border border-border/50 bg-muted/20 py-1 px-1">
-            <SectionLabel collapsed={isCollapsed}>Admin</SectionLabel>
-            <NavLinks
-              items={navAdmin}
-              collapsed={isCollapsed}
-              onNavigate={onNav}
-            />
+        {isAdmin && (
+          <div className="px-2 pb-2">
+            <div className="rounded-xl border border-border/50 bg-muted/20 py-1 px-1">
+              <SectionLabel collapsed={isCollapsed}>Admin</SectionLabel>
+              <NavLinks
+                items={navAdmin}
+                collapsed={isCollapsed}
+                onNavigate={onNav}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <Separator className="opacity-50" />
 
-        {/* User Avatar + Sign Out */}
-        <div className={cn("px-2 py-3", isCollapsed && "flex flex-col items-center gap-2")}>
-          {!isCollapsed && (
-            <div className="flex items-center gap-2 px-1 pb-2">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-full gradient-brand text-white text-xs font-bold">
-                {initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-foreground truncate">
-                  {email}
-                </p>
-                <p className="text-[10px] text-muted-foreground/60">
-                  Active session
-                </p>
-              </div>
-            </div>
-          )}
-          {isCollapsed && (
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full gradient-brand text-white text-xs font-bold mb-1">
-              {initials}
-            </div>
-          )}
+        {/* User Profile */}
+        <UserProfile token={token} collapsed={isCollapsed} />
+
+        {/* Sign Out */}
+        <div className={cn("px-2 pb-3", isCollapsed && "flex flex-col items-center gap-2")}>
           <button
             type="button"
             onClick={handleSignOut}
@@ -300,6 +343,24 @@ export default function Sidebar({
     );
   };
 
+  const collapseButton = (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={() => setCollapsed((c) => !c)}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      className="text-muted-foreground hover:text-foreground size-8"
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="size-4" />
+      ) : (
+        <PanelLeftClose className="size-4" />
+      )}
+    </Button>
+  );
+
   return (
     <>
       {/* Desktop / tablet: collapsible rail */}
@@ -317,8 +378,8 @@ export default function Sidebar({
         type="button"
         variant="outline"
         size="icon"
-        className="fixed left-3 top-3 z-50 md:hidden border-border bg-background/80 backdrop-blur-sm"
-        onClick={() => setMobileOpen(true)}
+        className="fixed left-3 top-16 z-50 md:hidden border-border bg-background/80 backdrop-blur-sm"
+        onClick={() => onMobileClose?.()}
         aria-label="Open navigation"
         title="Open navigation"
       >
@@ -326,38 +387,31 @@ export default function Sidebar({
       </Button>
 
       {/* Mobile / tablet: drawer overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden
-          />
-          <motion.div
-            initial={{ x: -300 }}
-            animate={{ x: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-border/60 bg-sidebar shadow-2xl"
-          >
-            <div className="flex justify-end p-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileOpen(false)}
-                aria-label="Close navigation"
-              >
-                <X className="size-5" />
-              </Button>
-            </div>
-            <div className="h-[calc(100%-3rem)]">
-              {sidebarContent(false, () => setMobileOpen(false))}
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              key="sidebar-mobile-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 md:hidden bg-background/70 backdrop-blur-sm"
+              onClick={() => onMobileClose?.()}
+              aria-hidden
+            />
+            <motion.aside
+              key="sidebar-mobile"
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-y-0 left-0 z-50 w-64 border-r border-border/60 bg-sidebar shadow-xl md:hidden"
+            >
+              {sidebarContent(false, () => onMobileClose?.())}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

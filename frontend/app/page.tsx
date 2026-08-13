@@ -4,18 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from "@/components/ui/conversation";
+import { ConversationEmptyState } from "@/components/ui/conversation";
 import Sidebar from "@/components/ui/sidebar";
 import { Message, MessageContent } from "@/components/ui/message";
 import { Orb } from "@/components/ui/orb";
 import { Response } from "@/components/ui/response";
 import AssistantActions from "@/components/ui/AssistantActions";
 import UserActions from "@/components/ui/UserActions";
+import TypingIndicator from "@/components/chat/TypingIndicator";
 import {
   SearchBar,
   ResponsePackageCard,
@@ -24,6 +20,7 @@ import {
 import { ApiError, SearchResponse, searchKnowledgeBase } from "@/lib/api-client";
 import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
 import LoginForm from "@/components/auth/LoginForm";
+import { tokens } from "@/lib/tokens";
 
 interface UserMessage {
   id: string;
@@ -46,6 +43,12 @@ type ChatMessage = UserMessage | AssistantMessage;
 
 const STORAGE_KEY = "hexa_chat_history";
 
+// D6 (documented decision): the transcript is persisted client-side in
+// localStorage so a reload restores the conversation on a static export.
+// It is NOT encrypted; it is cleared on logout/new chat/login. Acceptable
+// for internal use, but avoid persisting sensitive loan data — re-examine
+// if transcripts will contain PII.
+
 function newId() {
   return "msg_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -60,38 +63,8 @@ const STARTER_QUESTIONS = [
 function AssistantAvatar({ talking }: { talking: boolean }) {
   return (
     <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-border/80 bg-card">
-      <Orb className="h-full w-full" agentState={talking ? "talking" : null} />
+      <Orb className="h-full w-full" agentState={talking ? "talking" : "listening"} />
     </div>
-  );
-}
-
-function LoadingIndicator() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-3 py-2"
-    >
-      <Orb className="size-5 shrink-0" agentState="listening" />
-      <div className="flex items-center gap-1.5">
-        {[0, 1, 2].map((i) => (
-          <motion.span
-            key={i}
-            className="block size-1.5 rounded-full bg-primary"
-            animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
-            transition={{
-              repeat: Infinity,
-              duration: 0.9,
-              delay: i * 0.18,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-        <span className="text-xs text-muted-foreground ml-1">
-          Searching knowledge base…
-        </span>
-      </div>
-    </motion.div>
   );
 }
 
@@ -101,6 +74,7 @@ export default function HomePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openSources, setOpenSources] = useState<Record<string, boolean>>({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Restore auth + transcript on mount.
   useEffect(() => {
@@ -118,7 +92,7 @@ export default function HomePage() {
       try {
         setMessages(JSON.parse(saved));
       } catch {
-        // ignore corrupted transcript
+        /* ignore corrupted transcript */
       }
     }
     setAuthChecked(true);
@@ -245,163 +219,167 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar onSignOut={handleLogout} onNewChat={handleNewChat} />
+      <Sidebar
+        onSignOut={handleLogout}
+        onNewChat={handleNewChat}
+        mobileOpen={isSidebarOpen}
+        onMobileClose={() => setIsSidebarOpen(false)}
+      />
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <main className="relative flex min-h-0 flex-1 overflow-hidden">
-          <Conversation className="scrollbar h-full flex-1">
-            <ConversationContent>
-              <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
-                <AnimatePresence mode="wait">
-                  {messages.length === 0 ? (
-                    <ConversationEmptyState key="empty">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
-                        className="flex flex-col items-center gap-6 text-center"
-                      >
-                        {/* Animated Orb */}
-                        <motion.div
-                          animate={{
-                            y: [0, -8, 0],
-                          }}
-                          transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        >
-                          <Orb className="size-20" />
-                        </motion.div>
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Message list */}
+        <div className="flex-1 overflow-y-auto scrollbar pb-[120px]">
+          <div
+            className="mx-auto flex w-full max-w-[50rem] flex-col px-4 py-6 sm:px-6"
+            style={{ maxWidth: tokens.maxWidth.chat }}
+          >
+            <AnimatePresence mode="wait">
+              {messages.length === 0 ? (
+                <ConversationEmptyState key="empty">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="flex flex-col items-center gap-6 text-center"
+                  >
+                    {/* Animated Orb */}
+                    <motion.div
+                      animate={{
+                        y: [0, -8, 0],
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <Orb className="size-20" />
+                    </motion.div>
 
-                        {/* Headline */}
-                        <div className="space-y-2 max-w-md">
-                          <h2 className="text-2xl font-bold gradient-brand-text">
-                            Mortgage Knowledge Assistant
-                          </h2>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            Ask me anything about mortgage lending — credit
-                            scores, LTV ratios, required documents, loan
-                            eligibility, and more. Every answer comes directly
-                            from your knowledge base.
-                          </p>
-                        </div>
-
-                        {/* Starter questions */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg mt-2">
-                          {STARTER_QUESTIONS.map(({ q, emoji }, i) => (
-                            <motion.button
-                              key={q}
-                              type="button"
-                              initial={{ opacity: 0, y: 12 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{
-                                delay: 0.15 + i * 0.08,
-                                duration: 0.3,
-                              }}
-                              onClick={() => void handleSearch(q)}
-                              className="
-                                group flex items-start gap-2.5 rounded-xl
-                                border border-border/60 bg-card p-3
-                                text-left text-sm text-muted-foreground
-                                hover:border-primary/40 hover:bg-primary/5 hover:text-foreground
-                                transition-all duration-200
-                                focus-visible:ring-2 focus-visible:ring-ring outline-none
-                              "
-                            >
-                              <span className="text-lg leading-none">{emoji}</span>
-                              <span className="leading-snug">{q}</span>
-                            </motion.button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    </ConversationEmptyState>
-                  ) : (
-                    <div key="messages" className="space-y-2">
-                      {messages.map((msg) =>
-                        msg.role === "user" ? (
-                          <Message from="user" key={msg.id} timestamp={msg.ts}>
-                            <MessageContent>
-                              <Response>{msg.content}</Response>
-                            </MessageContent>
-                            <UserActions text={msg.content} />
-                          </Message>
-                        ) : (
-                          <Message
-                            from="assistant"
-                            key={msg.id}
-                            timestamp={msg.ts}
-                          >
-                            <MessageContent>
-                              {msg.isLoading ? (
-                                <LoadingIndicator />
-                              ) : msg.error ? (
-                                <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3"
-                                >
-                                  <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
-                                  <p className="text-sm text-destructive">
-                                    {msg.error}
-                                  </p>
-                                </motion.div>
-                              ) : msg.response ? (
-                                <>
-                                  <ResponsePackageCard
-                                    title={msg.response.title}
-                                    excerpts={msg.response.excerpts}
-                                    confidence={msg.response.confidence}
-                                    routing={msg.response.routing}
-                                    sourcesOpen={openSources[msg.id]}
-                                    onToggleSources={() =>
-                                      toggleSources(msg.id)
-                                    }
-                                  />
-                                  <AssistantActions
-                                    answerText={answerTextFor(msg)}
-                                    responseId={msg.response.response_id}
-                                    token={token}
-                                    userQuery={msg.userQuery}
-                                    onRegenerate={handleRegenerate}
-                                    sourcesOpen={openSources[msg.id]}
-                                    onToggleSources={() =>
-                                      toggleSources(msg.id)
-                                    }
-                                  />
-                                  <RelatedQuestions
-                                    questions={msg.response.related_questions}
-                                    onAskQuestion={handleAskRelated}
-                                  />
-                                </>
-                              ) : null}
-                            </MessageContent>
-                            <AssistantAvatar talking={msg.isLoading} />
-                          </Message>
-                        )
-                      )}
+                    {/* Headline */}
+                    <div className="space-y-2 max-w-md">
+                      <h2 className="text-3xl font-bold gradient-brand-text">
+                        Mortgage Knowledge Assistant
+                      </h2>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Ask me anything about mortgage lending — credit
+                        scores, LTV ratios, required documents, loan
+                        eligibility, and more. Every answer comes directly
+                        from your knowledge base.
+                      </p>
                     </div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </ConversationContent>
-            <ConversationScrollButton />
-          </Conversation>
-        </main>
 
-        {/* Footer input */}
-        <footer className="border-t border-border/60 bg-background/80 backdrop-blur-sm">
-          <div className="mx-auto w-full max-w-3xl px-4 py-4 sm:px-6">
+                    {/* Starter questions as quick-prompt chips */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg mt-2">
+                      {STARTER_QUESTIONS.map(({ q, emoji }, i) => (
+                        <motion.button
+                          key={q}
+                          type="button"
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            delay: 0.15 + i * 0.08,
+                            duration: 0.3,
+                          }}
+                          onClick={() => void handleSearch(q)}
+                          className="
+                            group flex items-start gap-2.5 rounded-xl
+                            border border-border/60 bg-card p-3
+                            text-left text-sm text-muted-foreground
+                            hover:border-primary/40 hover:bg-primary/5 hover:text-foreground
+                            transition-all duration-200
+                            focus-visible:ring-2 focus-visible:ring-ring outline-none
+                          "
+                        >
+                          <span className="text-lg leading-none">{emoji}</span>
+                          <span className="leading-snug">{q}</span>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                </ConversationEmptyState>
+              ) : (
+                <div key="messages" className="space-y-1">
+                  {messages.map((msg) =>
+                    msg.role === "user" ? (
+                        <Message from="user" key={msg.id} timestamp={msg.ts}>
+                        <MessageContent className="is-user">
+                          <Response>{msg.content}</Response>
+                          <UserActions text={msg.content} />
+                        </MessageContent>
+                      </Message>
+                    ) : (
+                      <Message
+                        from="assistant"
+                        key={msg.id}
+                        timestamp={msg.ts}
+                      >
+                        <AssistantAvatar talking={msg.isLoading} />
+                        <MessageContent className="is-assistant">
+                          {msg.isLoading ? (
+                            <TypingIndicator />
+                          ) : msg.error ? (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="flex items-start gap-3 rounded-xl border border-error/20 bg-error/5 p-3"
+                            >
+                              <AlertCircle className="size-4 text-error shrink-0 mt-0.5" />
+                              <p className="text-sm text-error">
+                                {msg.error}
+                              </p>
+                            </motion.div>
+                          ) : msg.response ? (
+                            <>
+                              <ResponsePackageCard
+                                excerpts={msg.response.excerpts}
+                                routing={msg.response.routing}
+                                sourcesOpen={openSources[msg.id]}
+                              />
+                              <AssistantActions
+                                answerText={answerTextFor(msg)}
+                                responseId={msg.response.response_id}
+                                token={token}
+                                userQuery={msg.userQuery}
+                                confidence={msg.response.confidence}
+                                routing={msg.response.routing}
+                                onRegenerate={handleRegenerate}
+                                sourcesOpen={openSources[msg.id]}
+                                onToggleSources={() =>
+                                  toggleSources(msg.id)
+                                }
+                              />
+                              <RelatedQuestions
+                                questions={msg.response.related_questions}
+                                onAskQuestion={handleAskRelated}
+                              />
+                            </>
+                          ) : null}
+                        </MessageContent>
+                      </Message>
+                    )
+                  )}
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Fixed bottom-center search bar — ChatGPT/Claude style */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pointer-events-none">
+          <div
+            className="pointer-events-auto"
+            style={{ maxWidth: `calc(${typeof tokens.maxWidth.chat === "number" ? tokens.maxWidth.chat : "50rem"} + 2rem)` }}
+          >
             <SearchBar
               onSearch={handleSearch}
               isLoading={isLoading}
               placeholder="Ask about mortgage requirements, documents, rates…"
             />
           </div>
-        </footer>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

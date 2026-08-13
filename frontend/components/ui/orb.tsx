@@ -48,15 +48,15 @@ export function Orb({
     <div className={className ?? "relative h-full w-full"}>
       {mounted && (
          <Canvas
-          key={canvasKey}
-          aria-hidden="true"
-          resize={{ debounce: resizeDebounce }}
-          gl={{
-            alpha: true,
-            antialias: true,
-            premultipliedAlpha: true,
-          }}
-        >
+            key={canvasKey}
+            aria-hidden="true"
+            resize={{ debounce: resizeDebounce }}
+            gl={{
+              alpha: true,
+              antialias: true,
+              premultipliedAlpha: true,
+            }}
+          >
           <Scene
             colors={colors}
             onContextRestored={handleContextRestored}

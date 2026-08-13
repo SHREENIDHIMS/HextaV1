@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { login } from "@/lib/api-client";
 import { storeToken } from "@/lib/auth";
 import { Orb } from "@/components/ui/orb";
@@ -57,46 +56,28 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       />
 
       {/* Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-sm"
-      >
+      <div className="relative z-10 w-full max-w-sm animate-fade-in animate-slide-up">
         {/* Glass panel */}
         <div className="glass rounded-2xl p-8 shadow-2xl shadow-black/40">
           {/* Brand */}
           <div className="flex flex-col items-center mb-8 gap-3">
-            <motion.div
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.4, ease: "backOut" }}
-              className="animate-float"
-            >
+            <div className="animate-float">
               <Orb className="size-14" />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.35 }}
-              className="text-center"
-            >
+            </div>
+            <div className="animate-fade-in text-center">
               <h1 className="text-2xl font-bold tracking-tight gradient-brand-text">
                 Hexta
               </h1>
               <p className="text-xs text-white/50 mt-0.5 font-medium tracking-widest uppercase">
                 Mortgage Knowledge Assistant
               </p>
-            </motion.div>
+            </div>
           </div>
 
           {/* Form */}
-          <motion.form
+          <form
             onSubmit={handleSubmit}
-            className="space-y-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.3 }}
+            className="space-y-4 animate-fade-in"
           >
             {/* Email */}
             <div className="space-y-1.5">
@@ -166,23 +147,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             </div>
 
             {/* Error */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  key="error"
-                  initial={{ opacity: 0, height: 0, y: -4 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  role="alert"
-                  className="overflow-hidden"
-                >
-                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                    {error}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {error && (
+              <div role="alert" className="animate-fade-in">
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              </div>
+            )}
 
             {/* Submit */}
             <button
@@ -213,19 +184,14 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 {isLoading ? "Signing in…" : "Sign in"}
               </span>
             </button>
-          </motion.form>
+          </form>
 
           {/* Footer note */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-center text-[11px] text-white/25 mt-6"
-          >
+          <p className="text-center text-[11px] text-white/25 mt-6 animate-fade-in">
             Access restricted to authorized personnel only
-          </motion.p>
+          </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

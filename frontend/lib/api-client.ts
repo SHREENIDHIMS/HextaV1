@@ -1,7 +1,7 @@
 // API client — calls FastAPI directly, no BFF proxy.
 // JWT is stored client-side and sent per-request.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18001/api/v1';
 
 export interface SearchRequest {
   query: string;

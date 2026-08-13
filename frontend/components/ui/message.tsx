@@ -1,6 +1,6 @@
 "use client"
 
-import type { ComponentProps, HTMLAttributes } from "react"
+import type { ComponentProps, HTMLAttributes, ReactNode } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
@@ -15,11 +15,20 @@ function formatTimestamp(ts: number): string {
   const date = new Date(ts)
   if (Number.isNaN(date.getTime())) return ""
   return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   })
+}
+
+function UserAvatar() {
+  return (
+    <Avatar className="ring-border size-7 ring-1 shrink-0">
+      <AvatarImage alt="" src="" />
+      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+        ME
+      </AvatarFallback>
+    </Avatar>
+  )
 }
 
 export const Message = ({
@@ -31,25 +40,23 @@ export const Message = ({
 }: MessageProps) => {
   const isUser = from === "user"
   return (
-    <div className={cn("flex w-full flex-col", className)}>
-      <div
-        className={cn(
-          "group flex w-full items-start gap-2 py-3",
-          isUser
-            ? "is-user justify-end"
-            : "is-assistant flex-row-reverse justify-start"
-        )}
-        {...props}
-      >
-        {children}
-      </div>
+    <div
+      className={cn(
+        "group/message relative flex w-full items-start gap-2.5 py-2.5",
+        isUser ? "flex-row-reverse" : "flex-row",
+        className
+      )}
+      data-sender={from}
+      {...props}
+    >
+      {/* User avatar — assistant avatar is passed as child */}
+      {isUser && <UserAvatar />}
+
+      {children}
+
+      {/* Timestamp — always visible */}
       {typeof timestamp === "number" && (
-        <span
-          className={cn(
-            "select-none text-xs text-muted-foreground/70",
-            isUser ? "text-right" : "pl-10"
-          )}
-        >
+        <span className="text-[10px] text-muted-foreground/50 mt-px">
           {formatTimestamp(timestamp)}
         </span>
       )}
@@ -65,10 +72,10 @@ const messageContentVariants = cva(
         contained: [
           "max-w-[80%] px-4 py-3",
           "group-[.is-user]:bg-accent group-[.is-user]:text-accent-foreground",
-          "group-[.is-assistant]:bg-secondary group-[.is-assistant]:text-foreground",
+          "group-[.is-assistant]:bg-muted/50 group-[.is-assistant]:text-foreground",
         ],
         flat: [
-          "group-[.is-user]:max-w-[80%] group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+          "group-[.is-user]:max-w-[80%] group-[.is-user]:bg-accent group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-accent-foreground",
           "group-[.is-assistant]:text-foreground",
         ],
       },
@@ -96,7 +103,7 @@ export const MessageContent = ({
 export type MessageAvatarProps = ComponentProps<typeof Avatar> & {
   src: string
   name?: string
-  children?: React.ReactNode
+  children?: ReactNode
 }
 
 export const MessageAvatar = ({

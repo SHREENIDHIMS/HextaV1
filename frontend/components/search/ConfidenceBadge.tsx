@@ -22,39 +22,53 @@ export default function ConfidenceBadge({
     lg: "text-base",
   };
 
+  const iconSizeClasses = {
+    sm: "size-3.5",
+    md: "size-4",
+    lg: "size-4.5",
+  };
+
   const getIcon = () => {
     switch (routing) {
       case "answer":
-        return <Shield className="w-3.5 h-3.5" aria-hidden="true" />;
+        return (
+          <Shield
+            className={cn("text-success", iconSizeClasses[size])}
+            aria-hidden="true"
+          />
+        );
       case "partial":
-        return <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />;
+        return (
+          <TrendingUp
+            className={cn("text-warning", iconSizeClasses[size])}
+            aria-hidden="true"
+          />
+        );
       case "no_answer":
-        return <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />;
+        return (
+          <AlertCircle
+            className={cn("text-error", iconSizeClasses[size])}
+            aria-hidden="true"
+          />
+        );
       default:
-        return <Shield className="w-3.5 h-3.5" aria-hidden="true" />;
+        return (
+          <Shield
+            className={cn("text-success", iconSizeClasses[size])}
+            aria-hidden="true"
+          />
+        );
     }
   };
 
-  const getVariant = () => {
-    switch (routing) {
-      case "answer":
-        return "default";
-      case "partial":
-        return "outline";
-      case "no_answer":
-        return "secondary";
-      default:
-        return "outline";
-    }
-  };
-
+  /* Semantic color classes using centralized tokens */
   const colorClass = {
     answer:
-      "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900/50",
+      "bg-success/10 text-success border-success/20",
     partial:
-      "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-900/50",
+      "bg-warning/10 text-warning border-warning/20",
     no_answer:
-      "bg-muted text-muted-foreground border-border dark:bg-muted/50",
+      "bg-muted/50 text-muted-foreground border-border",
   }[routing];
 
   const label = {
@@ -65,8 +79,12 @@ export default function ConfidenceBadge({
 
   return (
     <Badge
-      variant={getVariant() as "default" | "secondary" | "outline"}
-      className={cn("rounded-full gap-1 font-medium", sizeClasses[size], colorClass)}
+      variant="outline"
+      className={cn(
+        "rounded-full gap-1.5 font-medium transition-colors",
+        sizeClasses[size],
+        colorClass
+      )}
     >
       {getIcon()}
       <span>{Math.round(confidence)}%</span>

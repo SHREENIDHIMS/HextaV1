@@ -4,9 +4,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* =========================================================
+   Design Tokens — centralized, not hardcoded per component
+   ========================================================= */
+
 @theme inline {
+  /* ── Colors (reference CSS vars defined in @layer base) ── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -17,8 +24,8 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--primary);
+  --color-accent-foreground: var(--primary-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
@@ -31,37 +38,66 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "Fira Code", "Monaco", "Consolas", monospace;
+}
+
+/* ── Type scale & spacing tokens (non-standard keys) ── */
+:root {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
 }
 
 @layer base {
   :root {
-    /* Light mode — clean white with indigo accent */
-    --background: oklch(0.98 0.005 260);
-    --foreground: oklch(0.13 0.02 260);
-    --card: oklch(1 0 0);
+    /* ── Light mode: clean white with subtle luminance steps ── */
+    --background: oklch(0.975 0.005 260);       /* base app (near-white) */
+    --foreground: oklch(0.13 0.02 260);          /* body text */
+    --surface: oklch(0.96 0.006 260);            /* sidebar surface */
+    --surface-foreground: oklch(0.13 0.02 260);
+    --card: oklch(1 0 0);                        /* card/surface (pure white) */
     --card-foreground: oklch(0.13 0.02 260);
-    --primary: oklch(0.52 0.26 265);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.13 0.02 260);
+    --primary: oklch(0.52 0.26 265);             /* indigo accent */
     --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.94 0.01 265);
+    --secondary-foreground: oklch(0.18 0.02 265);
     --muted: oklch(0.95 0.008 265);
     --muted-foreground: oklch(0.50 0.02 265);
     --border: oklch(0.88 0.015 265);
     --input: oklch(0.91 0.012 265);
     --ring: oklch(0.52 0.26 265);
     --radius: 0.75rem;
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.13 0.02 260);
-    --secondary: oklch(0.94 0.01 265);
-    --secondary-foreground: oklch(0.18 0.02 265);
-    --accent: oklch(0.90 0.06 265);
-    --accent-foreground: oklch(0.18 0.02 265);
+
+    /* ── Semantic confidence colors ── */
+    --success: oklch(0.50 0.20 140);             /* green */
+    --success-foreground: oklch(1 0 0);
+    --warning: oklch(0.70 0.18 60);              /* amber */
+    --warning-foreground: oklch(0.15 0.03 60);
     --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.99 0 0);
+
     --chart-1: oklch(0.52 0.26 265);
     --chart-2: oklch(0.65 0.22 200);
     --chart-3: oklch(0.70 0.18 145);
     --chart-4: oklch(0.72 0.20 55);
     --chart-5: oklch(0.65 0.22 345);
-    --sidebar: oklch(0.97 0.007 260);
+
+    --sidebar: oklch(0.965 0.006 260);
     --sidebar-foreground: oklch(0.13 0.02 260);
     --sidebar-primary: oklch(0.52 0.26 265);
     --sidebar-primary-foreground: oklch(0.99 0 0);
@@ -72,32 +108,41 @@
   }
 
   .dark {
-    /* Dark mode — deep navy with electric indigo accent */
-    --background: oklch(0.10 0.02 265);
-    --foreground: oklch(0.95 0.01 265);
-    --card: oklch(0.14 0.025 265);
+    /* ── Dark mode: deep navy with electric indigo accent ── */
+    --background: oklch(0.085 0.018 265);        /* base app (deep navy) */
+    --foreground: oklch(0.95 0.01 265);          /* body text */
+    --surface: oklch(0.11 0.022 265);            /* sidebar surface */
+    --surface-foreground: oklch(0.85 0.02 265);
+    --card: oklch(0.13 0.025 265);               /* card/surface */
     --card-foreground: oklch(0.95 0.01 265);
+    --popover: oklch(0.13 0.025 265);
+    --popover-foreground: oklch(0.95 0.01 265);
+    --primary: oklch(0.68 0.28 265);             /* electric indigo */
+    --primary-foreground: oklch(0.10 0.02 265);
+    --secondary: oklch(0.20 0.03 265);
+    --secondary-foreground: oklch(0.90 0.01 265);
     --muted: oklch(0.18 0.025 265);
     --muted-foreground: oklch(0.60 0.03 265);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 12%);
-    --popover: oklch(0.14 0.025 265);
-    --popover-foreground: oklch(0.95 0.01 265);
-    --primary: oklch(0.68 0.28 265);
-    --primary-foreground: oklch(0.10 0.02 265);
-    --secondary: oklch(0.20 0.03 265);
-    --secondary-foreground: oklch(0.90 0.01 265);
-    --accent: oklch(0.22 0.08 265);
-    --accent-foreground: oklch(0.90 0.01 265);
-    --destructive: oklch(0.704 0.191 22.216);
     --ring: oklch(0.68 0.28 265);
+
+    /* ── Semantic confidence colors ── */
+    --success: oklch(0.65 0.22 140);
+    --success-foreground: oklch(0.10 0.03 140);
+    --warning: oklch(0.78 0.16 60);
+    --warning-foreground: oklch(0.15 0.03 60);
+    --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.99 0 0);
+
     --chart-1: oklch(0.68 0.28 265);
     --chart-2: oklch(0.65 0.22 200);
     --chart-3: oklch(0.70 0.18 145);
     --chart-4: oklch(0.72 0.20 55);
     --chart-5: oklch(0.65 0.22 345);
-    --sidebar: oklch(0.12 0.022 265);
-    --sidebar-foreground: oklch(0.90 0.01 265);
+
+    --sidebar: oklch(0.10 0.018 265);
+    --sidebar-foreground: oklch(0.85 0.02 265);
     --sidebar-primary: oklch(0.68 0.28 265);
     --sidebar-primary-foreground: oklch(0.10 0.02 265);
     --sidebar-accent: oklch(0.20 0.06 265);
@@ -169,6 +214,11 @@
   to   { transform: rotate(360deg); }
 }
 
+@keyframes typing-dot {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
 /* =========================================================
    Animation Utility Classes
    ========================================================= */
@@ -185,6 +235,17 @@
 .animate-delay-150 { animation-delay: 150ms; }
 .animate-delay-300 { animation-delay: 300ms; }
 .animate-delay-450 { animation-delay: 450ms; }
+
+/* =========================================================
+   Typing indicator dots
+   ========================================================= */
+
+.typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(1) { animation-delay: 0ms; }
+.typing-dot:nth-child(2) { animation-delay: 180ms; }
+.typing-dot:nth-child(3) { animation-delay: 360ms; }
 
 /* =========================================================
    Glassmorphism Utilities
@@ -205,22 +266,22 @@
 }
 
 /* =========================================================
-   Gradient Utilities
+   Gradient Utilities (referencing --primary token)
    ========================================================= */
 
 .gradient-brand {
-  background: linear-gradient(135deg, oklch(0.52 0.26 265), oklch(0.60 0.22 290));
+  background: linear-gradient(135deg, var(--primary), oklch(0.60 0.22 290));
 }
 
 .gradient-brand-text {
-  background: linear-gradient(135deg, oklch(0.68 0.28 265), oklch(0.75 0.20 300));
+  background: linear-gradient(135deg, var(--primary), oklch(0.70 0.22 280));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-mesh-bg {
-  background-color: oklch(0.10 0.02 265);
+  background-color: var(--background);
   background-image:
     radial-gradient(at 20% 20%, oklch(0.22 0.12 265 / 60%) 0px, transparent 50%),
     radial-gradient(at 80% 10%, oklch(0.18 0.10 290 / 40%) 0px, transparent 50%),

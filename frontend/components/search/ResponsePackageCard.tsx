@@ -1,27 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, FileText, AlertTriangle } from "lucide-react";
+import { ChevronDown, AlertTriangle, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import type { SearchExcerpt } from "@/lib/api-client";
-import ConfidenceBadge from "./ConfidenceBadge";
+import { cn } from "@/lib/utils";
 
 interface ResponsePackageCardProps {
-  title: string;
   excerpts: SearchExcerpt[];
-  confidence: number;
   routing: "answer" | "partial" | "no_answer";
   sourcesOpen?: boolean;
-  onToggleSources?: () => void;
 }
 
-const MAX_VISIBLE = 2;
-
 export default function ResponsePackageCard({
-  title,
   excerpts,
-  confidence,
   routing,
   sourcesOpen,
 }: ResponsePackageCardProps) {
@@ -32,11 +25,11 @@ export default function ResponsePackageCard({
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4"
+        className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/5 p-4"
       >
-        <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+        <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-base font-medium text-foreground">
             No match found in knowledge base
           </p>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -47,12 +40,7 @@ export default function ResponsePackageCard({
     );
   }
 
-  const visible = excerpts.slice(0, MAX_VISIBLE);
-  const hidden = excerpts.slice(MAX_VISIBLE);
-  const hasMoreExcerpts = hidden.length > 0;
-  const displayed = showAllExcerpts ? excerpts : visible;
-
-  // Deduplicate source documents by title
+  /** Deduplicate source documents by title */
   const documents = Array.from(
     excerpts
       .reduce((acc, e) => {
@@ -64,6 +52,10 @@ export default function ResponsePackageCard({
       .entries()
   ).sort(([a], [b]) => a.localeCompare(b));
 
+  /** The top excerpt is the primary answer; others are supporting evidence */
+  const primary = excerpts[0];
+  const supporting = excerpts.slice(1);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -71,67 +63,85 @@ export default function ResponsePackageCard({
       transition={{ duration: 0.3, ease: "easeOut" }}
       className="w-full space-y-3"
     >
-      {/* Title + confidence */}
-      <div className="space-y-2">
-        <h3 className="text-base font-semibold text-foreground leading-snug">
-          {title}
-        </h3>
-        <ConfidenceBadge confidence={confidence} routing={routing} size="sm" />
-      </div>
+      {/* Primary answer excerpt */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05, duration: 0.25 }}
+        className="rounded-2xl border border-border/60 bg-card p-4"
+      >
+        <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+          {primary.text}
+        </p>
 
-      {/* Excerpts */}
-      <div className="space-y-2">
-        <AnimatePresence initial={false}>
-          {displayed.map((excerpt, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.25 }}
-              className="relative rounded-xl border border-border/60 bg-card overflow-hidden"
-            >
-              {/* Accent bar */}
-              <div
-                className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl"
-                style={{
-                  background:
-                    routing === "answer"
-                      ? "linear-gradient(to bottom, oklch(0.68 0.28 265), oklch(0.60 0.22 290))"
-                      : routing === "partial"
-                      ? "linear-gradient(to bottom, oklch(0.72 0.20 55), oklch(0.68 0.18 70))"
-                      : "oklch(0.60 0.03 265)",
-                }}
-              />
-              <div className="pl-4 pr-4 py-3">
-                {excerpt.source.section && (
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">
-                    {excerpt.source.section}
+        {/* Source label (small, muted, bottom of card) */}
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground/50">
+          <FileText className="size-3" aria-hidden="true" />
+          <span className="truncate">
+            {primary.source.section || primary.source.title}
+          </span>
+          {primary.source.chunk_type && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="uppercase tracking-wider">
+                {primary.source.chunk_type}
+              </span>
+            </>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Supporting excerpts (collapsed by default) */}
+      {supporting.length > 0 && (
+        <div className="space-y-2">
+          <AnimatePresence initial={false}>
+            {showAllExcerpts &&
+              supporting.map((excerpt, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ delay: i * 0.04, duration: 0.2 }}
+                  className="rounded-xl border border-border/50 bg-muted/30 p-3"
+                >
+                  <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                    {excerpt.text}
                   </p>
-                )}
-                <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
-                  {excerpt.text}
-                </p>
-                <p className="mt-1.5 text-[10px] text-muted-foreground/50 flex items-center gap-1">
-                  <FileText className="size-3" />
-                  {excerpt.source.title}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+                  <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground/40">
+                    <FileText className="size-2.5" aria-hidden="true" />
+                    <span className="truncate">
+                      {excerpt.source.section || excerpt.source.title}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+          </AnimatePresence>
 
-        {hasMoreExcerpts && !showAllExcerpts && (
           <button
             type="button"
-            onClick={() => setShowAllExcerpts(true)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors duration-150 px-1 py-0.5"
-            aria-expanded={false}
+            onClick={() => setShowAllExcerpts((v) => !v)}
+            aria-expanded={showAllExcerpts}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground",
+              "hover:text-primary hover:bg-muted/60 transition-colors duration-150",
+              "focus-visible:ring-2 focus-visible:ring-ring outline-none"
+            )}
           >
-            <ChevronRight className="size-3.5" />
-            Show {hidden.length} more excerpt{hidden.length === 1 ? "" : "s"}
+            <ChevronDown
+              className={cn(
+                "size-3.5 transition-transform duration-200",
+                showAllExcerpts && "rotate-180"
+              )}
+            />
+            <span>
+              {showAllExcerpts
+                ? "Show fewer"
+                : `${supporting.length} more excerpt${supporting.length === 1 ? "" : "s"}`}
+            </span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Sources panel */}
       <AnimatePresence>
@@ -147,7 +157,7 @@ export default function ResponsePackageCard({
             aria-label="Sources"
             className="overflow-hidden"
           >
-            <div className="mt-1 rounded-xl border border-border/50 bg-muted/30 p-3 space-y-2">
+            <div className="rounded-xl border border-border/50 bg-muted/30 p-3 space-y-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
                 Sources ({documents.length})
               </p>
