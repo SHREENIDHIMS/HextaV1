@@ -53,6 +53,11 @@ services:
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     ports:
       - "127.0.0.1:15432:5432"   # bind to localhost only — never expose publicly. Non-default port avoids conflicts with other projects on shared host.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
@@ -82,6 +87,11 @@ services:
       # container path (/var/www/<project>), which the per-project
       # server block roots at. Add your project's out dir here.
       - ${HEXA_FRONTEND_OUT:-/opt/projects/hexa/frontend/out}:/var/www/hexa:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
