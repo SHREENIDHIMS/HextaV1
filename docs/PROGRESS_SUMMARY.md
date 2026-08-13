@@ -1,6 +1,6 @@
 # Hexta — Progress Summary
 
-Last updated: Session verification pass (2026-08-06). All green locally.
+Last updated: 2026-08-13 — benchmark-baseline reconciliation + RRF tuning.
 
 ## Where we are
 **Phases 0–6 and 8 are CLOSED and verified green this session.** Phase 7
@@ -84,14 +84,45 @@ host-bound and not runnable from this Windows dev box.
 > so seeded corpus data survived.
 
 ## Test health
-`pytest backend/tests -q` → **137 passed** (1 warning: Starlette httpx
+`pytest backend/tests -q` → **176 passed, 2 skipped** (1 warning: Starlette httpx
 deprecation — harmless, not a regression).
+
+## Retrieval-benchmark baseline reconciliation (2026-08-13)
+
+The audit work (T6/T7) re-seeded the knowledge base and rebuilt the eval
+dataset to reference the new corpus. The old `recall@1 86% / MRR 0.907`
+figure (report `retrieval_benchmark_20260806_202106.json`) was measured on a
+**different KB** — all 20 of its gold phrases are absent from the current
+corpus (0/20 present) while the new dataset's 15 gold phrases are all
+present (gold_not_found_total = 0).
+So the old and new numbers are **not comparable**: the drop to ~40% recall@1
+is a harder benchmark, not a code regression.
+
+Verified: the pre-B4 single-query SQL and the current two-arm UNION score
+**identically** (r@1 0.267 / r@5 0.733 / r@10 0.733) on the current KB —
+the hybrid_orchestrator rewrite did not hurt recall (it even improved one
+case from MISS → rank 23). The reranker is net-helpful (r@1 0.267 → 0.40).
+
+### Current baselines (report `retrieval_benchmark_20260813_024009.json`)
+| Config | recall@1 | recall@5 | recall@10 | MRR@10 | rerank p95 |
+|---|---|---|---|---|---|
+| RRF k=60 (pre-tuning) | 0.40 | 0.733 | 0.733 | 0.528 | 168ms |
+| **RRF k=30 (current)** | **0.40** | **0.733** | **0.867** | **0.542** | **137ms** |
+
+Rule-7-backed change (2026-08-13): `RRF_K` 60 → 30. Benchmark-sweep tested
+`k ∈ {20,30,45,60,100} × rerank_top_k ∈ {6,10,15}`. k=30 improves recall@10
++13pp and MRR without regressing recall@1/@5. `rerank_top_k` stays at 6:
+top_k=10 raised reranker p95 to 251ms on this host (serving container is
+~2x slower), violating the <200ms rule-6 budget — raising rerank depth
+again requires a faster cross-encoder first. `rrf_to_confidence`
+self-normalizes via `2/(k+1)`, so confidence bands are k-independent
+(`test_response.py` updated to derive from `RRF_K`).
 
 ## Pending / Not started
 - **Phase 7 — live EC2 verification:** the units are installed-ready and
   constraint-compliant
   (`shared-host-infra-scaffold/infra/systemd/hexa-backend.{socket,service}`
-  listening 0.0.0.0:8001 via fd 3, `--workers 1`, `MemoryMax=200M`;
+  listening 0.0.0.0:8001 via fd 3, `--workers 1`, `MemoryMax=384M`;
   `hexa-backend-idle.timer` → `idle_stop_watcher.sh` 10-min idle-stop) and
   the nginx server block (`nginx/conf.d/hexa-assistant.conf`) proxies `/api/`
   to the socket and serves `frontend/out/`. The remaining DoD items —

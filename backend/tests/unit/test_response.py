@@ -9,15 +9,19 @@ from app.response.package_builder import (
     rrf_to_confidence,
 )
 from app.response.validation import validate_package
-from app.ranking.rrf import RankedCandidate
+from app.ranking.rrf import RRF_K, RankedCandidate
 
 
 class TestRrfToConfidence:
     def test_top_ranked_scores_100(self):
-        assert rrf_to_confidence(2.0 / 61.0) == 100.0
+        # Top-ranked-in-both-lists normalises to 100 regardless of RRF_K.
+        max_rrf = 2.0 / (RRF_K + 1)
+        assert rrf_to_confidence(max_rrf) == 100.0
 
     def test_half_strength_scores_50(self):
-        assert rrf_to_confidence(1.0 / 61.0) == 50.0
+        # Half of the max RRF score normalises to 50 (k-independent).
+        half_rrf = 1.0 / (RRF_K + 1)
+        assert rrf_to_confidence(half_rrf) == 50.0
 
     def test_zero_rrf_is_zero(self):
         assert rrf_to_confidence(0.0) == 0.0
@@ -26,7 +30,7 @@ class TestRrfToConfidence:
         assert rrf_to_confidence(99.0) == 100.0
 
     def test_real_rrf_value_clears_no_answer_threshold(self):
-        assert rrf_to_confidence(0.0328) >= 50.0
+        assert rrf_to_confidence(2.0 / (RRF_K + 1)) >= 50.0
 
 
 class TestConfidenceThresholds:

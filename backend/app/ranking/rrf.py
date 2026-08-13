@@ -32,7 +32,13 @@ class RankedCandidate:
     document_version: int
 
 
-RRF_K: int = 60  # standard RRF constant
+# Rule 7: benchmark-backed (evaluation/retrieval_benchmark, 2026-08-13).
+# 60 -> 30 was measured on the post-audit corpus: recall@10 0.733 -> 0.867,
+# MRR 0.528 -> 0.542, recall@1/@5 unchanged (after-change report
+# evaluation/reports/retrieval_benchmark_20260813_024009.json). k=30 is the
+# classic Cormack et al. value, better suited to a small corpus where low
+# ranks still carry signal.
+RRF_K: int = 30
 
 
 def rank_fusion(

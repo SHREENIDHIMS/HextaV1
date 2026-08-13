@@ -1,0 +1,837 @@
+{
+  "timestamp": "2026-08-13T02:55:02.572227+00:00",
+  "dataset_size": 20,
+  "queries": [
+    {
+      "id": 1,
+      "question": "what is the minimum credit score",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "limits"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "credit score"
+      ],
+      "expected_entities": [
+        "credit score"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 9.81,
+      "normalized": "what is the minimum credit score",
+      "truncated": false
+    },
+    {
+      "id": 2,
+      "question": "What documents are required for a conventional loan?",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "documents"
+      ],
+      "expected_intents": [
+        "documents"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "conventional"
+      ],
+      "expected_entities": [
+        "conventional",
+        "document"
+      ],
+      "entities_ok": false,
+      "spell_corrected": false,
+      "latency_ms": 1.38,
+      "normalized": "what documents are required for a conventional loan?",
+      "truncated": false
+    },
+    {
+      "id": 3,
+      "question": "what is the maximum ltv for an investment property",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "limits"
+      ],
+      "expected_intents": [
+        "limits"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "investment property",
+        "loan to value"
+      ],
+      "expected_entities": [
+        "investment property",
+        "loan to value"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 1.75,
+      "normalized": "what is the maximum ltv for an investment property",
+      "truncated": false
+    },
+    {
+      "id": 4,
+      "question": "minimum down payment requirement",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "limits"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "down payment"
+      ],
+      "expected_entities": [
+        "down payment"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 0.78,
+      "normalized": "minimum down payment requirement",
+      "truncated": false
+    },
+    {
+      "id": 5,
+      "question": "What documents are required, what is the maximum LTV, and also tell me the minimum credit score?",
+      "sub_queries": 3,
+      "sub_question_ok": true,
+      "intent": [
+        "documents",
+        "limits"
+      ],
+      "expected_intents": [
+        "documents",
+        "limits",
+        "requirements"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "credit score",
+        "loan to value"
+      ],
+      "expected_entities": [
+        "credit score",
+        "loan to value"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 4.73,
+      "normalized": "what documents are required, what is the maximum ltv, and also tell me the minimum credit score?",
+      "truncated": false
+    },
+    {
+      "id": 6,
+      "question": "fha vs va loan differences",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "eligibility"
+      ],
+      "expected_intents": [
+        "definition"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "federal housing administration",
+        "veterans affairs"
+      ],
+      "expected_entities": [
+        "federal housing administration",
+        "veterans affairs"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 0.99,
+      "normalized": "fha vs va loan differences",
+      "truncated": false
+    },
+    {
+      "id": 7,
+      "question": "what documnts are requred for a heloc",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "documents"
+      ],
+      "expected_intents": [
+        "documents"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "helic home equity line of credit"
+      ],
+      "expected_entities": [
+        "home equity line of credit"
+      ],
+      "entities_ok": false,
+      "spell_corrected": true,
+      "latency_ms": 1.22,
+      "normalized": "what documnts are requred for a heloc",
+      "truncated": false
+    },
+    {
+      "id": 8,
+      "question": "dti ratio for jumbo loans",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "requirements"
+      ],
+      "expected_intents": [
+        "limits"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "debt to income",
+        "jumbo"
+      ],
+      "expected_entities": [
+        "debt to income",
+        "jumbo"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 0.83,
+      "normalized": "dti ratio for jumbo loans",
+      "truncated": false
+    },
+    {
+      "id": 9,
+      "question": "how much down payment do i need for a house",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "requirements"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "down payment"
+      ],
+      "expected_entities": [
+        "down payment"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 1.41,
+      "normalized": "how much down payment do i need for a house",
+      "truncated": false
+    },
+    {
+      "id": 10,
+      "question": "tell me about the closing process and what fees i will pay",
+      "sub_queries": 2,
+      "sub_question_ok": true,
+      "intent": [
+        "costs",
+        "process"
+      ],
+      "expected_intents": [
+        "costs",
+        "process"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "closing"
+      ],
+      "expected_entities": [
+        "closing"
+      ],
+      "entities_ok": true,
+      "spell_corrected": true,
+      "latency_ms": 1.56,
+      "normalized": "tell me about the closing process and what fees i will pay",
+      "truncated": false
+    },
+    {
+      "id": 11,
+      "question": "minimum credit score for usda loans",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "limits"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "credit score",
+        "united states department of agriculture"
+      ],
+      "expected_entities": [
+        "credit score",
+        "usda"
+      ],
+      "entities_ok": false,
+      "spell_corrected": false,
+      "latency_ms": 0.63,
+      "normalized": "minimum credit score for usda loans",
+      "truncated": false
+    },
+    {
+      "id": 12,
+      "question": "what is the maximun ltv for a va loan",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "limits"
+      ],
+      "expected_intents": [
+        "limits"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "loan to value",
+        "veterans affairs"
+      ],
+      "expected_entities": [
+        "loan to value",
+        "veterans affairs"
+      ],
+      "entities_ok": true,
+      "spell_corrected": true,
+      "latency_ms": 1.36,
+      "normalized": "what is the maximun ltv for a va loan",
+      "truncated": false
+    },
+    {
+      "id": 13,
+      "question": "required documents for self employed borrowers",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "documents"
+      ],
+      "expected_intents": [
+        "documents"
+      ],
+      "intent_ok": true,
+      "entities": [],
+      "expected_entities": [
+        "document"
+      ],
+      "entities_ok": false,
+      "spell_corrected": false,
+      "latency_ms": 1.0,
+      "normalized": "required documents for self employed borrowers",
+      "truncated": false
+    },
+    {
+      "id": 14,
+      "question": "what are the income and employment requirements?",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "requirements"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": true,
+      "entities": [],
+      "expected_entities": [],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 1.16,
+      "normalized": "what are the income and employment requirements?",
+      "truncated": false
+    },
+    {
+      "id": 15,
+      "question": "credit score vs interest rate relationship",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "costs"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "credit score",
+        "interest rate"
+      ],
+      "expected_entities": [
+        "credit score"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 0.85,
+      "normalized": "credit score vs interest rate relationship",
+      "truncated": false
+    },
+    {
+      "id": 16,
+      "question": "conventional loan vs fha loan comparison",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "eligibility"
+      ],
+      "expected_intents": [
+        "definition"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "conventional",
+        "federal housing administration"
+      ],
+      "expected_entities": [
+        "conventional",
+        "federal housing administration"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 0.62,
+      "normalized": "conventional loan vs fha loan comparison",
+      "truncated": false
+    },
+    {
+      "id": 17,
+      "question": "asdasdf qwerzxc",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "general"
+      ],
+      "expected_intents": [
+        "general"
+      ],
+      "intent_ok": true,
+      "entities": [],
+      "expected_entities": [],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 0.31,
+      "normalized": "asdasdf qwerzxc",
+      "truncated": false
+    },
+    {
+      "id": 18,
+      "question": "what is the minimun credt scor",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "limits"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "credit score"
+      ],
+      "expected_entities": [
+        "credit score"
+      ],
+      "entities_ok": true,
+      "spell_corrected": true,
+      "latency_ms": 0.83,
+      "normalized": "what is the minimun credt scor",
+      "truncated": false
+    },
+    {
+      "id": 19,
+      "question": "reverse mortgage eligibility requirements",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "eligibility"
+      ],
+      "expected_intents": [
+        "requirements"
+      ],
+      "intent_ok": false,
+      "entities": [
+        "reverse mortgage"
+      ],
+      "expected_entities": [
+        "reverse mortgage"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 0.48,
+      "normalized": "reverse mortgage eligibility requirements",
+      "truncated": false
+    },
+    {
+      "id": 20,
+      "question": "what fees do i pay at closing",
+      "sub_queries": 1,
+      "sub_question_ok": true,
+      "intent": [
+        "costs"
+      ],
+      "expected_intents": [
+        "costs",
+        "process"
+      ],
+      "intent_ok": true,
+      "entities": [
+        "closing"
+      ],
+      "expected_entities": [
+        "closing"
+      ],
+      "entities_ok": true,
+      "spell_corrected": false,
+      "latency_ms": 1.06,
+      "normalized": "what fees do i pay at closing",
+      "truncated": false
+    }
+  ],
+  "summary": {
+    "sub_question_accuracy": 1.0,
+    "intent_accuracy": 0.55,
+    "entity_accuracy": 0.8,
+    "avg_query_processing_latency_ms": 1.64,
+    "total_latency_ms": 32.76
+  },
+  "retrieval": {
+    "available": true,
+    "gold_items": 15,
+    "gold_found": 15,
+    "gold_not_found_ids": [],
+    "precision_at_1": 0.2667,
+    "precision_at_5": 0.1467,
+    "precision_at_10": 0.0867,
+    "recall_at_1": 0.2667,
+    "recall_at_5": 0.7333,
+    "recall_at_10": 0.8667,
+    "mrr_10": 0.4639,
+    "ndcg_10": 0.5534,
+    "hit_rate_10": 0.8667,
+    "queries": [
+      {
+        "id": 1,
+        "question": "what is the minimum credit score",
+        "gold_phrase": "minimum credit score: 620",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 733,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 29,
+        "hits": {
+          "recall@1": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 1.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 1.0,
+        "rank": 1
+      },
+      {
+        "id": 2,
+        "question": "What documents are required for a conventional loan?",
+        "gold_phrase": "recent pay stubs, bank statements, and a credit report",
+        "expected_doc_title": "Loan Application Process Guide",
+        "gold_chunk_id": 725,
+        "gold_doc_title": "Loan Application Process Guide",
+        "retrieved_count": 36,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.0,
+          "precision@10": 0.0
+        },
+        "ndcg_10": 0.0,
+        "rank": 21
+      },
+      {
+        "id": 4,
+        "question": "minimum down payment requirement",
+        "gold_phrase": "down payment: as low as 3 percent",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 733,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 31,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.6309297535714575,
+        "rank": 2
+      },
+      {
+        "id": 5,
+        "question": "What documents are required, what is the maximum LTV, and also tell me the minimum credit score?",
+        "gold_phrase": "minimum credit score: 620",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 733,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 44,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.0,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.3010299956639812,
+        "rank": 9
+      },
+      {
+        "id": 6,
+        "question": "fha vs va loan differences",
+        "gold_phrase": "VA Loans Available to eligible veterans",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 736,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 37,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.6309297535714575,
+        "rank": 2
+      },
+      {
+        "id": 8,
+        "question": "dti ratio for jumbo loans",
+        "gold_phrase": "dti limit: 43 percent",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 734,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 38,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.43067655807339306,
+        "rank": 4
+      },
+      {
+        "id": 9,
+        "question": "how much down payment do i need for a house",
+        "gold_phrase": "down payment: as low as 3 percent",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 733,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 32,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.38685280723454163,
+        "rank": 5
+      },
+      {
+        "id": 10,
+        "question": "tell me about the closing process and what fees i will pay",
+        "gold_phrase": "closing costs typically range from 2 to 5 percent",
+        "expected_doc_title": "Closing Costs and Fees Breakdown",
+        "gold_chunk_id": 739,
+        "gold_doc_title": "Closing Costs and Fees Breakdown",
+        "retrieved_count": 43,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.5,
+        "rank": 3
+      },
+      {
+        "id": 11,
+        "question": "minimum credit score for usda loans",
+        "gold_phrase": "credit score: 640+ recommended",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 737,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 31,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.6309297535714575,
+        "rank": 2
+      },
+      {
+        "id": 13,
+        "question": "required documents for self employed borrowers",
+        "gold_phrase": "self-employed",
+        "expected_doc_title": "Income and Employment Verification Handbook",
+        "gold_chunk_id": 796,
+        "gold_doc_title": "Income and Employment Verification Handbook",
+        "retrieved_count": 37,
+        "hits": {
+          "recall@1": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 1.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 1.0,
+        "rank": 1
+      },
+      {
+        "id": 14,
+        "question": "what are the income and employment requirements?",
+        "gold_phrase": "Documenting Income for Mortgage Qualification",
+        "expected_doc_title": "Income and Employment Verification Handbook",
+        "gold_chunk_id": 789,
+        "gold_doc_title": "Income and Employment Verification Handbook",
+        "retrieved_count": 33,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.0,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.2890648263178879,
+        "rank": 10
+      },
+      {
+        "id": 15,
+        "question": "credit score vs interest rate relationship",
+        "gold_phrase": "credit score below 700 adds 0.125 percent",
+        "expected_doc_title": "Credit Scoring and Risk Assessment Guidelines",
+        "gold_chunk_id": 787,
+        "gold_doc_title": "Credit Scoring and Risk Assessment Guidelines",
+        "retrieved_count": 33,
+        "hits": {
+          "recall@1": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 1.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 1.0,
+        "rank": 1
+      },
+      {
+        "id": 16,
+        "question": "conventional loan vs fha loan comparison",
+        "gold_phrase": "Conventional Conforming Loans",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 733,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 37,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.0,
+          "precision@10": 0.0
+        },
+        "ndcg_10": 0.0,
+        "rank": 12
+      },
+      {
+        "id": 18,
+        "question": "what is the minimun credt scor",
+        "gold_phrase": "minimum credit score: 620",
+        "expected_doc_title": "2024 Mortgage Product Comparison",
+        "gold_chunk_id": 733,
+        "gold_doc_title": "2024 Mortgage Product Comparison",
+        "retrieved_count": 29,
+        "hits": {
+          "recall@1": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 1.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 1.0,
+        "rank": 1
+      },
+      {
+        "id": 20,
+        "question": "what fees do i pay at closing",
+        "gold_phrase": "closing costs typically range from 2 to 5 percent",
+        "expected_doc_title": "Closing Costs and Fees Breakdown",
+        "gold_chunk_id": 739,
+        "gold_doc_title": "Closing Costs and Fees Breakdown",
+        "retrieved_count": 41,
+        "hits": {
+          "recall@1": 0.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0
+        },
+        "precision": {
+          "precision@1": 0.0,
+          "precision@5": 0.2,
+          "precision@10": 0.1
+        },
+        "ndcg_10": 0.5,
+        "rank": 3
+      }
+    ]
+  }
+}
