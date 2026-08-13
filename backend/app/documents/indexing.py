@@ -95,6 +95,20 @@ def index_document(
             else:
                 skipped += 1
 
+    # A re-ingest whose every chunk is a duplicate would leave an orphan
+    # documents row with zero chunks behind. Remove it so the doc table only
+    # ever lists documents that actually contribute chunks (I9).
+    if indexed == 0 and skipped > 0:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM documents WHERE id = %s", (document_id,))
+        conn.commit()
+        logger.info(
+            "Document %d was a full duplicate (%d chunks skipped); removed orphan row",
+            document_id,
+            skipped,
+        )
+        return IndexResult(document_id, 0, skipped)
+
     conn.commit()
     logger.info("Document %d: %d chunks indexed, %d skipped", document_id, indexed, skipped)
     return IndexResult(document_id, indexed, skipped)

@@ -28,7 +28,6 @@ class Chunk:
 @dataclass
 class StructuralChunker:
     max_tokens: int = 300
-    min_tokens: int = 50
 
     def chunk(self, extracted: ExtractedText) -> Iterator[Chunk]:
         """Chunk the extracted text, respecting structure."""
@@ -74,51 +73,74 @@ class StructuralChunker:
         return [(title, body) for title, body in sections if body.strip()]
 
     def _is_heading(self, line: str) -> bool:
-        """Detect heading lines."""
+        """Detect heading lines.
+
+        The ``isupper()`` form excludes digit-bearing lines: all-caps table
+        rows like ``FHA  580  43`` would otherwise be misread as headings and
+        the table destroyed before it can be preserved (I2). Strong signals
+        (trailing colon/em-dash, ``§``/``Section``) still match regardless.
+        """
         if len(line) <= 80 and len(line.split()) <= 12:
-            if line.isupper() or line.endswith(":") or line.endswith("—"):
+            if line.endswith(":") or line.endswith("—"):
                 return True
             if line.startswith("§") or line.startswith("Section"):
+                return True
+            if line.isupper() and not re.search(r"[0-9]", line):
                 return True
         return False
 
     def _chunk_section(
         self, body: str, section: str | None, page_num: int | None
     ) -> Iterator[Chunk]:
-        """Split a section body into chunks, preserving tables."""
-        paragraphs = body.split("\n")
+        """Split a section body into chunks, preserving tables.
+
+        PDF pages yield one *line* per extracted text row (pdfplumber), so
+        table detection on single lines never fires — a table must be tested
+        as a multi-line *block*. We therefore group consecutive non-blank
+        lines into blocks first, then run table detection on each block (I2).
+        """
+        blocks: list[str] = []
         current: list[str] = []
+        for line in body.split("\n"):
+            if line.strip():
+                current.append(line.strip())
+            elif current:
+                blocks.append("\n".join(current))
+                current = []
+        if current:
+            blocks.append("\n".join(current))
 
-        for para in paragraphs:
-            if not para.strip():
-                if current:
-                    yield Chunk(
-                        content="\n".join(current),
-                        section=section,
-                        chunk_type="paragraph",
-                        page_number=page_num,
-                    )
-                    current = []
-                continue
-
-            if self._is_table_block(para):
-                if current:
-                    yield Chunk(
-                        content="\n".join(current),
-                        section=section,
-                        chunk_type="paragraph",
-                        page_number=page_num,
-                    )
-                    current = []
+        for block in blocks:
+            if self._is_table_block(block):
                 yield Chunk(
-                    content=para,
+                    content=block,
                     section=section,
                     chunk_type="table",
                     page_number=page_num,
                 )
                 continue
 
-            current.append(para)
+            if self._count_tokens(block) <= self.max_tokens:
+                yield Chunk(
+                    content=block,
+                    section=section,
+                    chunk_type="paragraph",
+                    page_number=page_num,
+                )
+                continue
+
+            yield from self._split_long_text(
+                block, section, page_num
+            )
+
+    def _split_long_text(
+        self, text: str, section: str | None, page_num: int | None
+    ) -> Iterator[Chunk]:
+        """Split an over-long paragraph block on sentence boundaries."""
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        current: list[str] = []
+        for sent in sentences:
+            current.append(sent)
             if self._count_tokens("\n".join(current)) >= self.max_tokens:
                 yield Chunk(
                     content="\n".join(current),
@@ -127,7 +149,6 @@ class StructuralChunker:
                     page_number=page_num,
                 )
                 current = []
-
         if current:
             yield Chunk(
                 content="\n".join(current),
@@ -198,22 +219,33 @@ class StructuralChunker:
             )
 
     def _is_table_block(self, text: str) -> bool:
-        """Detect table-like text blocks (2+ rows, consistent columns)."""
+        """Detect table-like text blocks.
+
+        Two signals are recognized:
+        1. Pipe-delimited rows (rendered by text_extraction from pdfplumber's
+           structured table extraction) — deterministic.
+        2. A whitespace-column heuristic for plain-text tables: most lines
+           share the same cell count, that count is >= 3, and at least two
+           lines agree. The strict "share the first line's count" check used
+           to miss real tables whose header row has multi-word cells (I2).
+        """
         lines = [l.strip() for l in text.strip().split("\n") if l.strip()]
         if len(lines) < 2:
             return False
 
-        first_line_cells = len(lines[0].split())
-        if first_line_cells < 3:
+        if all("|" in line for line in lines):
+            return True
+
+        from collections import Counter
+
+        counts = Counter(len(line.split()) for line in lines)
+        (shared_count, occurrences) = counts.most_common(1)[0]
+        if shared_count < 3 or occurrences < 2:
             return False
-
-        # Check first 3 lines have consistent column count
-        consistent_count = 0
-        for line in lines:
-            if len(line.split()) == first_line_cells:
-                consistent_count += 1
-
-        return consistent_count >= 2
+        # Paragraph lines drift in word count line-to-line; table rows don't.
+        if occurrences < len(lines) * 0.6:
+            return False
+        return True
 
     def _count_tokens(self, text: str) -> int:
         """Approximate token count (words * 1.3)."""

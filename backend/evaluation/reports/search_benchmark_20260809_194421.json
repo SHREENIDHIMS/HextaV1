@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-08-09T19:44:21.941389",
+  "queries_per_round": 15,
+  "rounds": 5,
+  "total_queries": 225,
+  "results_by_user": {
+    "admin": {
+      "queries": 75,
+      "latency_ms": {
+        "p50": 81.4,
+        "p95": 130.3,
+        "min": 47.7,
+        "max": 147.8,
+        "mean": 85.3
+      },
+      "avg_excerpts": 3,
+      "answer_rate": 80.0
+    },
+    "loan_officer": {
+      "queries": 75,
+      "latency_ms": {
+        "p50": 76.6,
+        "p95": 121.7,
+        "min": 35.0,
+        "max": 133.1,
+        "mean": 82.4
+      },
+      "avg_excerpts": 2.9,
+      "answer_rate": 86.7
+    },
+    "compliance": {
+      "queries": 75,
+      "latency_ms": {
+        "p50": 74.5,
+        "p95": 120.5,
+        "min": 31.3,
+        "max": 156.2,
+        "mean": 83.2
+      },
+      "avg_excerpts": 2.9,
+      "answer_rate": 86.7
+    }
+  }
+}

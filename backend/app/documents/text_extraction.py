@@ -35,6 +35,7 @@ class ExtractedText:
     text: str
     pages: list[str]  # one entry per page (empty for plain text formats)
     source_format: str
+    ocr_applied: bool = False  # True when text came from OCR (scanned PDF)
 
 
 def extract_text(file_path: str | Path) -> ExtractedText:
@@ -54,6 +55,20 @@ def extract_text(file_path: str | Path) -> ExtractedText:
     raise ValueError(f"Unsupported file extension: {ext}")
 
 
+def _render_pdf_tables(table) -> str:
+    """Render one pdfplumber table as pipe-delimited rows.
+
+    pdfplumber's structured extraction is far more reliable than re-inferring
+    columns from whitespace afterwards, so tables are rendered here in a form
+    the chunker recognizes deterministically (I2)."""
+    rows = table.extract()
+    lines = []
+    for row in rows:
+        cells = [(c or "").replace("\n", " ").strip() for c in row]
+        lines.append(" | ".join(cells))
+    return "\n".join(lines)
+
+
 def _extract_pdf(path: Path) -> ExtractedText:
     if not HAS_PDFPLUMBER:
         raise RuntimeError("pdfplumber is required for PDF extraction")
@@ -62,8 +77,39 @@ def _extract_pdf(path: Path) -> ExtractedText:
     with pdfplumber.open(str(path)) as pdf:
         for page in pdf.pages:
             text = page.extract_text() or ""
+            try:
+                tables = page.extract_tables()
+                table_text = "\n".join(
+                    _render_pdf_tables(t) for t in tables
+                )
+                if table_text.strip():
+                    text = f"{text}\n{table_text}" if text.strip() else table_text
+            except Exception as e:
+                logger.warning("Table extraction failed on a page of %s: %s", path.name, e)
             pages.append(text)
             full_text.append(text)
+
+    # Scanned PDFs have no embedded text layer. Fall back to OCR once (I3);
+    # if OCR is unavailable or also yields nothing, return the empty result
+    # and let the batch pipeline quarantine the file instead of retrying it
+    # forever.
+    if not "".join(full_text).strip():
+        logger.warning("No embedded text in %s — attempting OCR", path.name)
+        try:
+            from app.documents.ocr import ocr_pdf
+
+            ocr_text = ocr_pdf(path)
+            if ocr_text.strip():
+                return ExtractedText(
+                    text=ocr_text,
+                    pages=pages,
+                    source_format="pdf",
+                    ocr_applied=True,
+                )
+            logger.warning("OCR produced no text for %s", path.name)
+        except Exception as e:
+            logger.warning("OCR unavailable/failed for %s: %s", path.name, e)
+
     return ExtractedText(
         text="\n".join(full_text),
         pages=pages,

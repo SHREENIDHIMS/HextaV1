@@ -36,6 +36,14 @@ _DOC_TYPE_KEYWORDS = {
     "requirement": "policy",
 }
 
+# Keywords that map document content to a department. The first matching
+# keyword (in order) wins. This drives RBAC filtering at search time.
+_DOC_DEPT_KEYWORDS = {
+    "compliance": "compliance",
+    "underwriting": "underwriting",
+    "eligibility": "eligibility",
+}
+
 
 def extract_metadata(
     extracted: ExtractedText, file_path: str | Path
@@ -44,11 +52,13 @@ def extract_metadata(
     path = Path(file_path)
     title = _guess_title(extracted, path)
     doc_type = _guess_doc_type(extracted)
+    department = _guess_department(extracted, doc_type)
     source_path = str(path)
 
     return DocumentMetadata(
         title=title,
         doc_type=doc_type,
+        department=department,
         source_path=source_path,
     )
 
@@ -69,3 +79,18 @@ def _guess_doc_type(extracted: ExtractedText) -> str:
         if keyword in first_lines:
             return doc_type
     return "policy"
+
+
+def _guess_department(extracted: ExtractedText, doc_type: str) -> str:
+    """Infer the department for RBAC scoping.
+
+    Scans the first 2000 chars for department keywords. Falls back to
+    ``doc_type`` if it matches a known department, otherwise ``"general"``.
+    """
+    first_lines = extracted.text.lower()[:2000]
+    for keyword, department in _DOC_DEPT_KEYWORDS.items():
+        if keyword in first_lines:
+            return department
+    if doc_type in _DOC_DEPT_KEYWORDS.values():
+        return doc_type
+    return "general"

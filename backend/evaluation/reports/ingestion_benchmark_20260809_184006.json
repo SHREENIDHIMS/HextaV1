@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-08-09T18:40:06.279658",
+  "documents": 3,
+  "total_ms": 10640.5,
+  "per_document": [
+    {
+      "filename": "credit_score_policy.txt",
+      "doc_id": 70,
+      "chunks_indexed": 4,
+      "chunks_skipped": 0,
+      "total_ms": 10520.9,
+      "department": "general",
+      "doc_type": "policy"
+    },
+    {
+      "filename": "dti_ratio.txt",
+      "doc_id": 71,
+      "chunks_indexed": 3,
+      "chunks_skipped": 0,
+      "total_ms": 64.4,
+      "department": "general",
+      "doc_type": "policy"
+    },
+    {
+      "filename": "closing_costs.md",
+      "doc_id": 72,
+      "chunks_indexed": 3,
+      "chunks_skipped": 0,
+      "total_ms": 55.2,
+      "department": "general",
+      "doc_type": "policy"
+    }
+  ],
+  "per_stage_ms": {
+    "validation": {
+      "p50": 0.0,
+      "p95": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "extraction": {
+      "p50": 10.6,
+      "p95": 10.6,
+      "min": 9.5,
+      "max": 16.1
+    },
+    "metadata": {
+      "p50": 0.1,
+      "p95": 0.1,
+      "min": 0.1,
+      "max": 0.1
+    },
+    "entities": {
+      "p50": 0.1,
+      "p95": 0.1,
+      "min": 0.1,
+      "max": 0.1
+    },
+    "chunking": {
+      "p50": 0.0,
+      "p95": 0.0,
+      "min": 0.0,
+      "max": 0.2
+    },
+    "embedding": {
+      "p50": 38.4,
+      "p95": 38.4,
+      "min": 34.7,
+      "max": 10418.5
+    },
+    "indexing": {
+      "p50": 15.1,
+      "p95": 15.1,
+      "min": 10.7,
+      "max": 85.9
+    }
+  },
+  "stages": {
+    "validation": 0.0,
+    "extraction": 12.0,
+    "metadata": 0.1,
+    "entities": 0.1,
+    "chunking": 0.1,
+    "embedding": 3497.2,
+    "indexing": 37.3
+  }
+}
