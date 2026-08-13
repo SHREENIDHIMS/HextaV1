@@ -55,17 +55,29 @@ class IngestOutcome(str, enum.Enum):
 
 
 def _move_file(file_path: Path, target_dir: str) -> Path:
-    """Move a file into target_dir, surviving name collisions on Windows."""
+    """Move a file into target_dir, surviving name collisions (I7).
+
+    The destination is disambiguated when a file with the same name already
+    exists. Existence is checked explicitly rather than catching
+    FileExistsError: POSIX Path.rename() silently overwrites (no exception),
+    so exception-based collision handling only ever worked on Windows — and
+    failed on CI's ubuntu runners.
+    """
     target = Path(target_dir)
     target.mkdir(parents=True, exist_ok=True)
     dest = target / file_path.name
-    try:
-        file_path.rename(dest)
-    except FileExistsError:
-        # POSIX rename() overwrites; Windows raises instead. Disambiguate so
-        # re-ingested duplicates never clobber an existing processed file (I7).
-        dest = target / f"{file_path.stem}-{int(time.time())}{file_path.suffix}"
-        file_path.rename(dest)
+    if dest.exists():
+        # Same-second collisions between two files sharing a stem would
+        # otherwise produce the identical disambiguated name — bump the
+        # suffix until a free one is found.
+        n = 0
+        while True:
+            candidate = target / f"{file_path.stem}-{int(time.time())}-{n}{file_path.suffix}"
+            if not candidate.exists():
+                dest = candidate
+                break
+            n += 1
+    file_path.rename(dest)
     logger.info("Moved %s → %s", file_path, dest)
     return dest
 
