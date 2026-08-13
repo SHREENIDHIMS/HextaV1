@@ -99,6 +99,26 @@ DDL_STATEMENTS: list[str] = [
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
     """,
+    # --- Token revocation (logout) — jti-keyed blacklist ---
+    """
+    CREATE TABLE IF NOT EXISTS token_blacklist (
+        id         BIGSERIAL PRIMARY KEY,
+        jti        TEXT NOT NULL UNIQUE,
+        user_id    BIGINT,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+    """,
+    # --- Auth events (failed logins → lockout; success resets the window) ---
+    """
+    CREATE TABLE IF NOT EXISTS auth_events (
+        id         BIGSERIAL PRIMARY KEY,
+        email      TEXT NOT NULL,
+        event      TEXT NOT NULL,
+        ip_address TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+    """,
 ]
 
 INDEX_STATEMENTS: list[str] = [
@@ -108,6 +128,10 @@ INDEX_STATEMENTS: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON document_chunks USING hnsw (embedding vector_cosine_ops)",
     # Chunk-level dedup — must match ON CONFLICT (content_hash) in indexing.py
     "CREATE UNIQUE INDEX IF NOT EXISTS uq_chunks_content_hash ON document_chunks (content_hash)",
+    # Blacklist probes are per-request on every authenticated call.
+    "CREATE INDEX IF NOT EXISTS idx_blacklist_jti ON token_blacklist (jti)",
+    # Lockout counts failed logins per email in a rolling window.
+    "CREATE INDEX IF NOT EXISTS idx_auth_events_email ON auth_events (email, created_at)",
 ]
 
 

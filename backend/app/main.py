@@ -3,7 +3,7 @@
 Run with:
     uvicorn app.main:app --workers 1 --fd 3
 
-Socket-activated by systemd (hexa-backend.socket on port 8001).
+Socket-activated by systemd (hexa-backend.socket on port 18001).
 Idle-stops after 10 minutes of no activity (hexa-backend-idle.timer).
 """
 
@@ -98,16 +98,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — restricted in production, permissive in dev
+# CORS — restricted in production, permissive in dev.
+# allow_origins must be an explicit list in non-development environments
+# (enforced by Settings._guard_cors). Credentials are only sent when origins
+# are explicit: the fetch spec forbids credentialed requests to "*".
 if settings.cors_origins == "*":
     allow_origins = ["*"]
+    allow_credentials = False
 else:
-    allow_origins = settings.cors_origins.split(",")
+    allow_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

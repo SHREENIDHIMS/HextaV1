@@ -9,6 +9,7 @@ to RS256 (asymmetric) and add JWKS endpoint support.
 from __future__ import annotations
 
 import time
+import uuid
 
 import jwt
 
@@ -20,12 +21,16 @@ def create_token(
     role: str = "loan_officer",
     department: str = "general",
     allowed_departments: list[str] | None = None,
+    email: str | None = None,
 ) -> str:
     """Create a signed JWT for the given user.
 
     The token carries RBAC-relevant claims used by metadata_filters.py
     at search time: user role, primary department, and the full list of
-    departments the user may query.
+    departments the user may query. Email is included so the frontend
+    can display identity without an extra round-trip; it is display-only
+    and never used for authorization. The ``jti`` claim enables revocation
+    via the token_blacklist table on logout.
     """
     now = int(time.time())
     payload = {
@@ -33,6 +38,8 @@ def create_token(
         "role": role,
         "department": department,
         "allowed_departments": allowed_departments or [],
+        "email": email,
+        "jti": str(uuid.uuid4()),
         "iat": now,
         "exp": now + (settings.jwt_expiry_minutes * 60),
     }

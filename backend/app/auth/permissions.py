@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.auth.rbac import ADMIN_ROLES
-
 
 def require_role(user: dict | None, role: str) -> None:
     """Raise 403 if the user's role doesn't meet the minimum requirement.

@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
-
-backend_path = Path(__file__).resolve().parent.parent
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
 
 
 class TestPermissionsFailClosed:
@@ -118,15 +113,71 @@ class TestSearchAuth:
 
 
 class TestConfigSecretGuard:
-    def test_default_secret_rejected_in_production(self, monkeypatch):
-        monkeypatch.delenv("HEXA_JWT_SECRET", raising=False)
-        with pytest.raises(ValueError, match="HEXA_JWT_SECRET"):
-            from app.config import Settings
+    # NOTE: _env_file=None keeps these deterministic — the repo's backend/.env
+    # now carries real (rotated) dev secrets, so dotenv must not leak into the
+    # assertions here.
+    def test_default_secret_rejected_in_production(self):
+        from app.config import Settings
 
-            Settings(environment="production")
+        with pytest.raises(ValueError, match="HEXA_JWT_SECRET"):
+            Settings(
+                _env_file=None,
+                environment="production",
+                cors_origins="https://app.example.com",
+            )
 
     def test_custom_secret_accepted_in_production(self):
         from app.config import Settings
 
-        s = Settings(environment="production", jwt_secret="a-strong-32-char-secret-not-default")
+        s = Settings(
+            _env_file=None,
+            environment="production",
+            jwt_secret="a-strong-32-char-secret-not-default",
+            cors_origins="https://app.example.com",
+        )
         assert s.jwt_secret != "dev-only-secret-change-me-in-production-32chars"
+
+    def test_wildcard_cors_rejected_in_production(self):
+        from app.config import Settings
+
+        with pytest.raises(ValueError, match="HEXA_CORS_ORIGINS"):
+            Settings(
+                _env_file=None,
+                environment="production",
+                jwt_secret="a-strong-32-char-secret-not-default",
+                cors_origins="*",
+            )
+
+    def test_explicit_cors_accepted_in_production(self):
+        from app.config import Settings
+
+        s = Settings(
+            _env_file=None,
+            environment="production",
+            jwt_secret="a-strong-32-char-secret-not-default",
+            cors_origins="https://app.example.com,https://admin.example.com",
+        )
+        assert "https://app.example.com" in s.cors_origins
+
+
+class TestLoginLockoutDictRow:
+    """Login lockout counting must survive the pool's dict_row factory.
+
+    The connection pool configures ``dict_row`` (session.py), so aggregate
+    rows are dicts — accessing them by index crashed with KeyError (found
+    live in the container, not by the mocked unit tests). test_redaction.py
+    covers the value math; this class pins the dict_row access contract.
+    """
+
+    def test_is_locked_out_reads_dict_count(self):
+        from app.api.v1.auth import _is_locked_out
+        from app.config import settings
+
+        conn = MagicMock()
+        cur = MagicMock()
+        cur.__enter__.return_value = cur
+        cur.__exit__.return_value = False
+        cur.fetchone.return_value = {"count": settings.login_max_attempts}
+        conn.cursor.return_value = cur
+
+        assert _is_locked_out(conn, "a@b.co") is True

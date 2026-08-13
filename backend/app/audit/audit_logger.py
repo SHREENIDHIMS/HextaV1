@@ -8,12 +8,12 @@ This is a compliance artifact, separate from analytics/.
 from __future__ import annotations
 
 import logging
-import time
 import uuid
 from typing import Protocol
 
 from psycopg.types.json import Jsonb
 
+from app.audit.redaction import redact_query
 from app.config import settings
 from app.db.postgres.session import acquire
 
@@ -63,8 +63,12 @@ def log_query(entry: AuditLogEntry) -> None:
                     "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                     (
                         entry.user_id,
-                        entry.query,
-                        Jsonb(entry.sub_queries) if entry.sub_queries is not None else None,
+                        redact_query(entry.query),
+                        (
+                            Jsonb([redact_query(q) for q in entry.sub_queries])
+                            if entry.sub_queries is not None
+                            else None
+                        ),
                         entry.retrieved_ids if entry.retrieved_ids else None,
                         entry.confidence,
                         entry.response_id,

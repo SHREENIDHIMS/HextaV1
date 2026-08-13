@@ -38,17 +38,30 @@ class Settings(BaseSettings):
 
     # --- Database ---
     # postgresql://user:password@host:port/dbname
-    database_url: str = "postgresql://hexa_app:devpass@127.0.0.1:5432/hexa_assistant"
+    database_url: str = "postgresql://hexa_app:devpass@127.0.0.1:15432/hexa_assistant"
     database_pool_max: int = 4
     database_pool_timeout_s: int = 30
 
     # --- Auth ---
     jwt_secret: str = _DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
+    # Fixed 8h expiry, no sliding sessions (A6). This is a documented
+    # decision for a single-host assistant: tokens are revoked on logout via
+    # the jti blacklist (token_blacklist), and a deactivated user's token
+    # stops verifying immediately because /auth/verify re-checks is_active.
+    # Sliding sessions would keep idle-but-authenticated browser tabs alive
+    # indefinitely; revisit only if user deactivation latency becomes a concern.
     jwt_expiry_minutes: int = 480
 
+    # --- Auth lockout (brute-force defense) ---
+    # Lock the account for `login_lockout_minutes` after `login_max_attempts`
+    # failed logins within that window. Success resets the window.
+    login_max_attempts: int = 5
+    login_lockout_minutes: int = 15
+
     # --- CORS ---
-    # Comma-separated list of allowed origins; "*" in non-production only.
+    # Comma-separated list of allowed origins. "*" is permitted only in
+    # development; non-development environments must enumerate origins.
     cors_origins: str = "*"
 
     # --- Embeddings (query-time, always-on process) ---
@@ -60,7 +73,16 @@ class Settings(BaseSettings):
     # --- Storage ---
     storage_pending_dir: str = "storage/pending"
     storage_processed_dir: str = "storage/processed"
+    # Permanent failures (unreadable/scanned-without-OCR files) land here so
+    # they stop failing on every batch — see ingest_batch.main (I3).
+    storage_quarantine_dir: str = "storage/quarantine"
     max_upload_bytes: int = 20 * 1024 * 1024
+
+    # --- Ingestion chunking ---
+    # Dedicated chunk-size knob for the batch pipeline. This used to piggyback
+    # on max_excerpt_chars (a response-display setting) — the two are unrelated
+    # concerns and must stay decoupled (I6).
+    chunk_max_tokens: int = 300
 
     # --- Search ---
     bm25_limit: int = 25
@@ -79,7 +101,12 @@ class Settings(BaseSettings):
     # --- Optional reranker (P2; OFF by default on the micro tier) ---
     rerank_enabled: bool = False
     rerank_model_dir: str = "nlp_models/reranker"
-    rerank_top_k: int = 10
+    # 6: benchmark-backed — the only top_k that meets the <200ms p95 budget
+    # (rule 6) in the REAL serving env (linux container is ~2x slower than
+    # the host venv: top_k=7 → 212ms p95, top_k=6 → 117ms). Retrieval
+    # quality holds (MRR 0.528, recall@1 40% — reports
+    # retrieval_benchmark_20260811_065700).
+    rerank_top_k: int = 6
     # Cross-encoder latency budget (ms) — CLAUDE.md rule 6.
     rerank_budget_ms: float = 200.0
 
@@ -97,15 +124,33 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _guard_cors(self) -> "Settings":
+        """Fail fast if CORS is wide open outside development."""
+        if (
+            self.environment != "development"
+            and self.cors_origins.strip() == "*"
+        ):
+            raise ValueError(
+                "HEXA_CORS_ORIGINS must be an explicit comma-separated origin "
+                "list in non-development environments (wildcard CORS plus "
+                "credentials is a browser-level bypass of auth)."
+            )
+        return self
+
+    @model_validator(mode="after")
     def _anchor_nlp_directories(self) -> "Settings":
         """Anchor relative ``nlp_models/*`` paths to the repo root so they
         resolve regardless of the process cwd — the benchmark runs from the
         repo root, the dev ``uvicorn`` server runs from ``backend/``. Storage
         paths stay backend-relative per the docs."""
-        if self.rerank_model_dir and not Path(self.rerank_model_dir).is_absolute():
-            self.rerank_model_dir = str(
-                Path(__file__).resolve().parents[2] / self.rerank_model_dir
-            )
+        for attr in ("rerank_model_dir", "embedding_cache_dir"):
+            value = getattr(self, attr)
+            if value and not Path(value).is_absolute():
+                setattr(
+                    self,
+                    attr,
+                    str(Path(__file__).resolve().parents[2] / value),
+                )
         return self
 
 
