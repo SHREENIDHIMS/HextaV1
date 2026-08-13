@@ -50,9 +50,9 @@ class TestMetadataFilters:
 
     def test_no_user_denies_all(self):
         clause, params = get_search_filter(None)
-        # None user has no departments → all access denied via RBAC
-        # But in practice, None means "not authenticated" — check loan_officer path
-        pass
+        # None user has no departments → all access denied via RBAC.
+        assert clause == "1=0"
+        assert params == []
 
     def test_version_filter(self):
         clause, params = get_version_filter()

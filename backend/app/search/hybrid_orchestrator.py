@@ -53,11 +53,16 @@ def search_knowledge_base(
     bm25_limit: int = 25,
     vector_limit: int = 25,
     max_results: int = 100,
+    tsquery_sql: str | None = None,
 ) -> SearchResult:
     """Run hybrid search for a set of sub-queries.
 
     Returns ranked candidates with both BM25 and vector scores.
     RBAC is applied in the WHERE clause per CLAUDE.md rule #1.
+
+    ``tsquery_sql`` overrides the default OR tsquery fragment (used by the
+    retrieval benchmark's AND-vs-OR ablation); params stay term-based and
+    identical for either operator.
     """
     if not sub_queries:
         return SearchResult()
@@ -66,39 +71,72 @@ def search_knowledge_base(
     query_vector = embed_query(primary_query)
 
     combined_text = " ".join(sub_queries)
-    tsquery_sql = build_tsquery_sql(combined_text)
+    if tsquery_sql is None:
+        tsquery_sql = build_tsquery_sql(combined_text)
     tsquery_params = build_tsquery_params(combined_text)
 
-    # RBAC filter — applied in WHERE clause
+    # RBAC filter — applied in WHERE clause (both union arms)
     rbac_clause, rbac_params = get_search_filter(user)
+    rbac_sql = f"AND {rbac_clause}" if rbac_clause else ""
 
+    # Two per-signal candidate pools, fused at RRF time:
+    #   arm 1 — BM25 top-k   (keywords must match, ordered by ts_rank_cd)
+    #   arm 2 — vector top-k (semantic similarity, no keyword requirement)
+    # Each arm is capped by its own config limit (bm25_limit / vector_limit);
+    # the outer LIMIT keeps the fused pool within max_results.
     query = f"""
-    SELECT c.id, c.document_id, d.title, d.doc_type, c.section,
-           c.chunk_type, c.content, c.department,
-           c.is_approved AS chunk_is_approved,
-           d.version AS document_version,
-           ts_rank_cd(c.fts, ({tsquery_sql})) AS bm25_score,
-           1 - (c.embedding <=> %s) AS vec_score
-    FROM document_chunks c
-    JOIN documents d ON d.id = c.document_id
-    WHERE c.fts @@ ({tsquery_sql})
-      AND c.is_active = true AND c.is_approved = true
-      AND d.is_active = true AND d.is_approved = true
-      AND c.embedding IS NOT NULL
-      {f'AND {rbac_clause}' if rbac_clause else ''}
-    ORDER BY GREATEST(
-        ts_rank_cd(c.fts, ({tsquery_sql})),
-        1 - (c.embedding <=> %s)
-    ) DESC
+    SELECT * FROM (
+        (
+            SELECT c.id, c.document_id, d.title, d.doc_type, c.section,
+                   c.chunk_type, c.content, c.department,
+                   c.is_approved AS chunk_is_approved,
+                   d.version AS document_version,
+                   ts_rank_cd(c.fts, ({tsquery_sql})) AS bm25_score,
+                   1 - (c.embedding <=> %s) AS vec_score
+            FROM document_chunks c
+            JOIN documents d ON d.id = c.document_id
+            WHERE c.fts @@ ({tsquery_sql})
+              AND c.is_active = true AND c.is_approved = true
+              AND d.is_active = true AND d.is_approved = true
+              AND c.embedding IS NOT NULL
+              {rbac_sql}
+            ORDER BY ts_rank_cd(c.fts, ({tsquery_sql})) DESC
+            LIMIT %s
+        )
+        UNION
+        (
+            SELECT c.id, c.document_id, d.title, d.doc_type, c.section,
+                   c.chunk_type, c.content, c.department,
+                   c.is_approved AS chunk_is_approved,
+                   d.version AS document_version,
+                   ts_rank_cd(c.fts, ({tsquery_sql})) AS bm25_score,
+                   1 - (c.embedding <=> %s) AS vec_score
+            FROM document_chunks c
+            JOIN documents d ON d.id = c.document_id
+            WHERE c.embedding IS NOT NULL
+              AND c.is_active = true AND c.is_approved = true
+              AND d.is_active = true AND d.is_approved = true
+              {rbac_sql}
+            ORDER BY 1 - (c.embedding <=> %s) DESC
+            LIMIT %s
+        )
+    ) pooled
+    ORDER BY GREATEST(bm25_score, vec_score) DESC
     LIMIT %s
     """
 
-    params: list = list(tsquery_params)
-    params.append(query_vector)
-    params.extend(tsquery_params)
+    params: list = list(tsquery_params)       # arm 1: SELECT bm25_score
+    params.append(query_vector)               # arm 1: SELECT vec_score
+    params.extend(tsquery_params)             # arm 1: WHERE fts @@
     params.extend(rbac_params)
-    params.extend(tsquery_params)
-    params.extend([query_vector, max_results])
+    params.extend(tsquery_params)             # arm 1: ORDER BY bm25
+    params.append(bm25_limit)                 # arm 1: LIMIT
+    params.extend(tsquery_params)             # arm 2: SELECT bm25_score
+    params.append(query_vector)               # arm 2: SELECT vec_score
+    params.extend(rbac_params)
+    params.append(query_vector)               # arm 2: ORDER BY vec
+    params.append(vector_limit)               # arm 2: LIMIT
+    params.append(max_results)                # outer LIMIT
 
     with conn.cursor() as cur:
         cur.execute(query, params)

@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
 from app.auth.permissions import require_role
 from app.config import settings
@@ -77,7 +77,7 @@ async def upload_document(
 @router.get("/")
 async def list_documents(
     user: dict = Depends(require_auth),
-    limit: int = 100,
+    limit: int = Query(default=100, ge=1, le=500),
 ) -> dict:
     """List documents (requires admin role)."""
     require_role(user, "admin")

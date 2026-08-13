@@ -152,7 +152,7 @@ COMMON_WORDS: set[str] = {
     "under", "until", "up", "us", "very", "was", "we", "were", "what", "when",
     "where", "which", "while", "who", "whom", "why", "will", "with", "without",
     "would", "you", "your", "minimum", "maximum", "max", "min", "limit", "limits",
-     "required", "requirement", "requirements", "threshold", "document", "documents",
+     "requirement", "requirements", "threshold", "document", "documents",
      "paperwork", "form", "forms", "month", "months", "year", "years", "percent",
      "percentage", "process", "steps", "step", "time", "day", "days", "checklist",
      "credit", "score", "fico", "loan", "money", "funds", "down", "payment",

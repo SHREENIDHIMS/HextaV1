@@ -19,7 +19,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth.jwt_handler import verify_token
-from app.config import settings
+from app.auth.token_blacklist import is_token_revoked
 from app.db.postgres.session import acquire
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -48,6 +48,13 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if is_token_revoked(payload):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -89,15 +96,3 @@ async def require_auth(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
-
-
-def get_user_departments(user: dict) -> list[str]:
-    """Resolve the full department access scope for a user.
-
-    A user always has access to their own department, plus any
-    departments in their allowed_departments list. Used as the RBAC
-    pre-filter in the search WHERE clause.
-    """
-    departments = {user["department"]}
-    departments.update(user.get("allowed_departments") or [])
-    return list(departments)

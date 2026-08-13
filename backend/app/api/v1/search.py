@@ -13,15 +13,17 @@ Every response field traces back verbatim to a source chunk.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.audit.audit_logger import AuditLogEntry, log_query
 from app.db.postgres.session import acquire
 from app.dependencies import require_auth
+from app.knowledge_gap.gap_detector import detect_and_log
 from app.query_processing.pipeline import process_query
 from app.ranking.rrf import rank_fusion
 from app.response.confidence_thresholds import route_by_confidence
@@ -31,9 +33,11 @@ from app.search.hybrid_orchestrator import search_knowledge_base
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
+
 
 class SearchRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=500)
 
 
 class SearchResponse(BaseModel):
@@ -77,6 +81,7 @@ async def search(
             outcome="no_sub_queries",
             latency_ms=time.time() * 1000 - start_ms,
         ))
+        detect_and_log(query=request.query, confidence=0.0)
         return SearchResponse(
             response_id="",
             title="No Results",
@@ -151,6 +156,10 @@ async def search(
         # Low confidence is a legitimate "no answer" routing outcome, not an
         # error — the system returns a clearly-labelled extractive fallback.
         if reason.startswith("Confidence"):
+            detect_and_log(
+                query=request.query,
+                confidence=package.confidence,
+            )
             return SearchResponse(
                 response_id=package.response_id,
                 title=package.title,
@@ -159,10 +168,24 @@ async def search(
                 routing="no_answer",
                 related_questions=[],
             )
-        # RBAC / approval / version violations are safety issues → hard fail.
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Response validation failed: {reason}",
+        # RBAC violations are caller-triggered → 403, never a 500 (B8).
+        if "RBAC" in reason:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Response validation failed: {reason}",
+            )
+        # Approval / version anomalies are data-integrity issues outside the
+        # caller's control — return a safe empty no_answer package and log the
+        # anomaly rather than surfacing a 500 (B8).
+        logger.warning("Response validation anomaly: %s", reason)
+        detect_and_log(query=request.query, confidence=package.confidence)
+        return SearchResponse(
+            response_id=package.response_id,
+            title=package.title,
+            excerpts=[],
+            confidence=0.0,
+            routing="no_answer",
+            related_questions=[],
         )
 
     # Audit log

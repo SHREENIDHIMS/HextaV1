@@ -1,18 +1,12 @@
-"""Integration test for RBAC pre-filter enforcement.
+"""Unit tests for the RBAC pre-filter (CLAUDE.md rule #1).
 
-Per SKILL.md Phase 4: Write a test that deliberately includes a chunk the
-test user is NOT permitted to see, and assert it never reaches the reranker
-(check via a call-count mock), not just that it's absent from the final
-output.
-
-This is the enforcement mechanism for CLAUDE.md rule #1.
+These are DB-free — they only exercise ``get_search_filter``, which builds
+the WHERE clause that the hybrid SQL query injects at query time. Previously
+mislabeled as an integration test (T5).
 """
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-from app.search.hybrid_orchestrator import search_knowledge_base
 from app.search.metadata_filters import get_search_filter
 
 

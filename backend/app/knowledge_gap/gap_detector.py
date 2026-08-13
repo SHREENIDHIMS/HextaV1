@@ -7,6 +7,7 @@ document ingestion.
 
 from __future__ import annotations
 
+from app.audit.redaction import redact_query
 from app.db.postgres.session import acquire
 
 
@@ -23,6 +24,8 @@ def detect_and_log(
       (config.min_confidence_no_answer, default 50)
 
     These are written to the knowledge_gaps table for analytics review.
+    Queries are redacted (masked PII) at write time, consistent with
+    audit_log (CLAUDE.md rule #8).
     Never raises — gap detection must not break the request path.
     """
     from app.config import settings
@@ -37,7 +40,7 @@ def detect_and_log(
                 cur.execute(
                     "INSERT INTO knowledge_gaps (query, intent, confidence) "
                     "VALUES (%s, %s, %s)",
-                    (query, intent, confidence),
+                    (redact_query(query), intent, confidence),
                 )
                 conn.commit()
     except Exception:

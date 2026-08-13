@@ -31,6 +31,18 @@ async def submit_feedback(
 
     with acquire() as conn:
         with conn.cursor() as cur:
+            # Reject feedback for response_ids that never existed (spam/garbage
+            # data) instead of storing arbitrary strings (B7).
+            cur.execute(
+                "SELECT 1 FROM audit_log WHERE response_id = %s LIMIT 1",
+                (request.response_id,),
+            )
+            if cur.fetchone() is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Unknown response_id — no such response was served",
+                )
+
             cur.execute(
                 "INSERT INTO feedback (user_id, response_id, rating, comment) "
                 "VALUES (%s, %s, %s, %s) RETURNING id",

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.auth.permissions import require_role
 from app.dependencies import require_auth
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/knowledge-gaps")
 async def knowledge_gaps(
     user: dict = Depends(require_auth),
-    limit: int = 50,
+    limit: int = Query(default=50, ge=1, le=500),
 ) -> dict:
     """View low-confidence / no-answer queries. Requires admin role."""
     require_role(user, "admin")
@@ -89,7 +89,7 @@ async def analytics_stats(
 @router.get("/top-sources")
 async def top_sources(
     user: dict = Depends(require_auth),
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=500),
 ) -> dict:
     """Return the most-cited source documents. Requires admin role."""
     require_role(user, "admin")
@@ -103,8 +103,8 @@ async def top_sources(
                 SELECT d.title, COUNT(*) AS citation_count
                 FROM audit_log al
                 CROSS JOIN UNNEST(al.retrieved_ids) AS cid
-                JOIN chunks c ON c.chunk_id = cid
-                JOIN documents d ON d.id = c.document_id
+                JOIN document_chunks dc ON dc.id = cid
+                JOIN documents d ON d.id = dc.document_id
                 WHERE d.is_active = true
                 GROUP BY d.title
                 ORDER BY citation_count DESC

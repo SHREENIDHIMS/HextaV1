@@ -10,14 +10,7 @@ Tests:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
-
-backend_path = Path(__file__).resolve().parent.parent
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
 
 
 class TestAppStartup:
@@ -198,6 +191,87 @@ class TestEndpoints:
         )
         # Search endpoint is fully implemented — returns JSON or auth error
         assert response.status_code in (200, 401)
+
+    def test_search_success_path_returns_200(self):
+        """The search happy path (package build → validate → audit) must return
+        200 with excerpts, not just the 401 stub fallback (T4)."""
+        from fastapi.testclient import TestClient
+        from unittest.mock import patch
+
+        from app.main import app
+        from app.dependencies import get_current_user
+        from app.search.hybrid_orchestrator import SearchCandidate, SearchResult
+
+        def fake_user():
+            return {
+                "id": 1,
+                "email": "admin@hexa.local",
+                "full_name": "Admin User",
+                "role": "super_admin",
+                "department": "general",
+                "allowed_departments": [],
+                "is_active": True,
+            }
+
+        def fake_result(*args, **kwargs):
+            cand = SearchCandidate(
+                chunk_id=1,
+                document_id=1,
+                title="Credit Score Requirements for Mortgages",
+                doc_type="policy",
+                department="general",
+                section="Minimum Credit Score",
+                chunk_type="paragraph",
+                content="The minimum credit score for a conventional loan is 620.",
+                is_approved=True,
+                document_version=1,
+                bm25_score=0.9,
+                vec_score=0.95,
+            )
+            return SearchResult(candidates=[cand])
+
+        app.dependency_overrides[get_current_user] = fake_user
+        try:
+            with patch("app.api.v1.search.search_knowledge_base", side_effect=fake_result), \
+                 patch("app.api.v1.search.log_query"):
+                client = TestClient(app)
+                response = client.post(
+                    "/api/v1/search/",
+                    json={"query": "minimum credit score"},
+                    headers={"Authorization": "Bearer valid-token"},
+                )
+        finally:
+            app.dependency_overrides.clear()
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["routing"] == "answer"
+        assert body["confidence"] > 0
+        assert len(body["excerpts"]) >= 1
+        assert body["excerpts"][0]["source"]["title"] == "Credit Score Requirements for Mortgages"
+        assert body["response_id"]
+
+    def test_search_rejects_empty_query(self):
+        """B6: empty or over-long queries are rejected by the API schema."""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        from app.dependencies import get_current_user
+
+        app.dependency_overrides[get_current_user] = lambda: {
+            "id": 1, "email": "admin@hexa.local", "full_name": "Admin",
+            "role": "super_admin", "department": "general",
+            "allowed_departments": [], "is_active": True,
+        }
+        try:
+            client = TestClient(app)
+            response = client.post(
+                "/api/v1/search/",
+                json={"query": ""},
+                headers={"Authorization": "Bearer x"},
+            )
+        finally:
+            app.dependency_overrides.clear()
+        assert response.status_code == 422
 
     def test_documents_upload_requires_auth(self):
         from fastapi.testclient import TestClient

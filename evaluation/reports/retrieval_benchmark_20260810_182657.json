@@ -1,0 +1,370 @@
+{
+  "timestamp": "2026-08-10T18:26:53.090660+00:00",
+  "dataset": "retrieval_benchmark",
+  "config": {
+    "rerank_enabled": true,
+    "rerank_model_dir": "C:\\Users\\chait\\OneDrive\\Desktop\\Hexta-main\\Hexta-main\\nlp_models\\reranker",
+    "rerank_model_present": true,
+    "rerank_top_k": 10,
+    "rerank_budget_ms": 200.0,
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "db": "127.0.0.1:15432",
+    "max_results": 100
+  },
+  "queries": [
+    {
+      "id": 1,
+      "question": "what is the minimum credit score",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 733,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the minimum credit score"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 140.32,
+      "latency_ms": 175.44
+    },
+    {
+      "id": 2,
+      "question": "What documents are required for a conventional loan?",
+      "expected_doc": "Loan Application Process Guide",
+      "gold_chunk_id": 725,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Loan Application Process Guide",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what documents are required for a conventional loan"
+      ],
+      "or_rank": 23,
+      "and_rank": 10,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 151.95,
+      "latency_ms": 166.05
+    },
+    {
+      "id": 4,
+      "question": "minimum down payment requirement",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 733,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "minimum down payment requirement"
+      ],
+      "or_rank": 1,
+      "and_rank": 2,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 156.04,
+      "latency_ms": 185.96
+    },
+    {
+      "id": 5,
+      "question": "What documents are required, what is the maximum LTV, and also tell me the minimum credit score?",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 733,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what documents are required",
+        "what is the maximum ltv loan to value",
+        "tell me the minimum credit score"
+      ],
+      "or_rank": 11,
+      "and_rank": 0,
+      "and_retrieved_gold_at_all": false,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 148.3,
+      "latency_ms": 165.6
+    },
+    {
+      "id": 6,
+      "question": "fha vs va loan differences",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 736,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "fha vs va loan differences federal housing administration veterans affairs"
+      ],
+      "or_rank": 2,
+      "and_rank": 2,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 152.94,
+      "latency_ms": 172.93
+    },
+    {
+      "id": 8,
+      "question": "dti ratio for jumbo loans",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 734,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "dti ratio for jumbo loans debt to income"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 105.6,
+      "latency_ms": 124.15
+    },
+    {
+      "id": 9,
+      "question": "how much down payment do i need for a house",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 733,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "how much down payment do i need for a house"
+      ],
+      "or_rank": 3,
+      "and_rank": 4,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 170.07,
+      "latency_ms": 192.74
+    },
+    {
+      "id": 10,
+      "question": "tell me about the closing process and what fees i will pay",
+      "expected_doc": "Closing Costs and Fees Breakdown",
+      "gold_chunk_id": 739,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Breakdown",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "tell me about the closing process",
+        "what fees i will pay"
+      ],
+      "or_rank": 1,
+      "and_rank": 4,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 114.17,
+      "latency_ms": 128.47
+    },
+    {
+      "id": 11,
+      "question": "minimum credit score for usda loans",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 737,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "minimum credit score for usda loans united states department of agriculture"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 125.07,
+      "latency_ms": 139.34
+    },
+    {
+      "id": 13,
+      "question": "required documents for self employed borrowers",
+      "expected_doc": "Income and Employment Verification Handbook",
+      "gold_chunk_id": 796,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Income and Employment Verification Handbook",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "required documents for self employed borrowers"
+      ],
+      "or_rank": 4,
+      "and_rank": 4,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 190.65,
+      "latency_ms": 204.64
+    },
+    {
+      "id": 14,
+      "question": "what are the income and employment requirements?",
+      "expected_doc": "Income and Employment Verification Handbook",
+      "gold_chunk_id": 789,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Income and Employment Verification Handbook",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what are the income and employment requirements"
+      ],
+      "or_rank": 11,
+      "and_rank": 3,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 139.98,
+      "latency_ms": 154.1
+    },
+    {
+      "id": 15,
+      "question": "credit score vs interest rate relationship",
+      "expected_doc": "Credit Scoring and Risk Assessment Guidelines",
+      "gold_chunk_id": 787,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Credit Scoring and Risk Assessment Guidelines",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "credit score vs interest rate relationship"
+      ],
+      "or_rank": 1,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 116.54,
+      "latency_ms": 137.66
+    },
+    {
+      "id": 16,
+      "question": "conventional loan vs fha loan comparison",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 733,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "conventional loan vs fha loan comparison federal housing administration"
+      ],
+      "or_rank": 12,
+      "and_rank": 14,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 0,
+        "recall@10": 0
+      },
+      "rerank_latency_ms": 127.45,
+      "latency_ms": 154.01
+    },
+    {
+      "id": 18,
+      "question": "what is the minimun credt scor",
+      "expected_doc": "2024 Mortgage Product Comparison",
+      "gold_chunk_id": 733,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "2024 Mortgage Product Comparison",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what is the minimum credit score"
+      ],
+      "or_rank": 5,
+      "and_rank": 1,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 0,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 140.31,
+      "latency_ms": 151.2
+    },
+    {
+      "id": 20,
+      "question": "what fees do i pay at closing",
+      "expected_doc": "Closing Costs and Fees Breakdown",
+      "gold_chunk_id": 739,
+      "gold_found_in_chunk": true,
+      "gold_chunk_doc": "Closing Costs and Fees Breakdown",
+      "gold_matches_expected_doc": true,
+      "sub_queries": [
+        "what fees do i pay at closing"
+      ],
+      "or_rank": 1,
+      "and_rank": 2,
+      "and_retrieved_gold_at_all": true,
+      "hits": {
+        "recall@1": 1,
+        "recall@5": 1,
+        "recall@10": 1
+      },
+      "rerank_latency_ms": 128.41,
+      "latency_ms": 139.38
+    }
+  ],
+  "summary": {
+    "denominator": 15,
+    "gold_not_found_total": 0,
+    "gold_not_found_ids": [],
+    "rerank_enabled": true,
+    "rerank_model_present": true,
+    "recall_at_1": 0.4667,
+    "recall_at_5": 0.7333,
+    "recall_at_10": 0.7333,
+    "mrr_10": 0.5522,
+    "retrieval_rate_or": 1.0,
+    "retrieval_rate_and": 0.9333,
+    "and_operator_misses_over_findable": 1,
+    "mrr_or": 0.5522,
+    "mrr_and": 0.5122,
+    "mean_latency_ms": 159.45,
+    "p95_latency_ms": 204.64,
+    "mean_reranker_latency_ms": 140.52,
+    "p95_reranker_latency_ms": 190.65,
+    "reranker_budget_ok": true
+  }
+}

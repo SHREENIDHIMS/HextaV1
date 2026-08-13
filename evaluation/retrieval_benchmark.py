@@ -57,8 +57,11 @@ if _envpath.is_file():
 from app.config import settings  # noqa: E402
 from app.db.postgres.session import acquire  # noqa: E402
 from app.query_processing.pipeline import process_query  # noqa: E402
-from app.search.bm25_search import build_tsquery_params, build_tsquery_sql  # noqa: E402
-from app.search.hybrid_orchestrator import SearchCandidate  # noqa: E402
+from app.search.bm25_search import build_tsquery_sql  # noqa: E402
+from app.search.hybrid_orchestrator import (  # noqa: E402
+    SearchCandidate,
+    search_knowledge_base,
+)
 from app.ranking.reranker import (  # noqa: E402
     _get_reranker,
     _model_available,
@@ -66,115 +69,41 @@ from app.ranking.reranker import (  # noqa: E402
 )
 from app.ranking.rrf import rank_fusion  # noqa: E402
 from app.search.pgvector_search import embed_query  # noqa: E402
-from app.search.metadata_filters import get_search_filter  # noqa: E402
+from evaluation.metrics.latency_benchmark import percentile_latencies  # noqa: E402
 
 ADMIN_USER = {"role": "super_admin", "department": "general"}
 MAX_RESULTS = 100
 
-# (id, question, verbatim answer phrase present in a chunk, expected doc title)
-GOLD: list[tuple[int, str, str, str]] = [
-    (1, "what is the minimum credit score for a conventional loan",
-     "minimum FICO score of 620", "Credit Score Requirements for Mortgages"),
-    (2, "what credit score gets the best rates",
-     "740 or higher receive the best available interest rates", "Credit Score Requirements for Mortgages"),
-    (3, "what is the minimum credit score for a jumbo loan",
-     "often 680 or above", "Credit Score Requirements for Mortgages"),
-    (4, "what are the mortgage approval requirements",
-     "minimum 620 for conventional loans", "Mortgage Approval Requirements"),
-    (5, "what is the minimum down payment for an fha loan",
-     "minimum of 3.5% down payment", "FHA vs Conventional Loan Comparison"),
-    (6, "what is the maximum ltv for a conventional loan",
-     "maximum 80% for conventional loans without mortgage insurance",
-     "Mortgage Approval Requirements"),
-    (7, "what is the maximum debt to income ratio",
-     "must not exceed 43% of gross monthly income",
-     "Debt-to-Income (DTI) Ratio Requirements"),
-    (8, "how is the dti ratio calculated",
-     "dividing total monthly debt obligations",
-     "Debt-to-Income (DTI) Ratio Requirements"),
-    (9, "what are typical closing costs",
-     "typically 2% to 5% of the loan amount", "Closing Costs and Fees Overview"),
-    (10, "what is an appraisal fee",
-     "appraisal fee: paid to a licensed appraiser", "Closing Costs and Fees Overview"),
-    (11, "what is the loan estimate",
-     "loan estimate and a closing disclosure", "Closing Costs and Fees Overview"),
-    (12, "what is the difference between fha and conventional loans",
-     "charges an upfront mip", "FHA vs Conventional Loan Comparison"),
-    (13, "what is the conventional loan down payment range",
-     "minimum of 3% to 5% down", "FHA vs Conventional Loan Comparison"),
-    (14, "how does a lower credit score affect mortgage insurance",
-     "increases the cost of mortgage insurance", "Credit Score Requirements for Mortgages"),
-    (15, "what is the upfront mip for fha loans",
-     "charges an upfront MIP (1.75% of the loan)", "FHA vs Conventional Loan Comparison"),
-    (16, "when do conventional loans charge pmi",
-     "PMI only when the down payment is below 20%", "FHA vs Conventional Loan Comparison"),
-    (17, "what is the maximum front-end housing ratio",
-     "below 28% of gross monthly income", "Debt-to-Income (DTI) Ratio Requirements"),
-    (18, "are bonuses and capital gains counted in the dti ratio",
-     "Capital gains, irregular bonuses, and one-time receipts are not counted as stable monthly income",
-     "Debt-to-Income (DTI) Ratio Requirements"),
-    (19, "how much does one discount point cost",
-     "each point costs 1% of the loan amount", "Closing Costs and Fees Overview"),
-    (20, "how can i raise my credit score before applying",
-     "correcting errors on the credit report can raise the score",
-     "Credit Score Requirements for Mortgages"),
-]
+# Gold retrieval targets, sourced from the reconciled eval dataset module
+# (evaluation/datasets/eval_questions.py) — the single source of truth.
+# Each gold item is (id, question, verbatim gold phrase, expected doc title).
+def _load_gold() -> list[tuple[int, str, str, str]]:
+    from evaluation.datasets.eval_questions import load_dataset
+
+    gold: list[tuple[int, str, str, str]] = []
+    for item in load_dataset():
+        phrase = item.get("gold_phrase")
+        doc_title = item.get("expected_doc_title")
+        if phrase and doc_title:
+            gold.append((item["id"], item["question"], phrase, doc_title))
+    return gold
+
+
+GOLD: list[tuple[int, str, str, str]] = _load_gold()
 
 
 def _hybrid_search(conn, sub_query_texts, user, tsquery_sql) -> list[SearchCandidate]:
     """Hybrid BM25 + pgvector search, parameterised by tsquery_sql so we can
-    run OR (current) vs AND (pre-fix) variants. RBAC is in the WHERE clause."""
-    primary_query = sub_query_texts[0]
-    query_vector = embed_query(primary_query)
-    combined_text = " ".join(sub_query_texts)
-    tsquery_params = build_tsquery_params(combined_text)
+    run OR (current) vs AND (pre-fix) variants.
 
-    rbac_clause, rbac_params = get_search_filter(user)
-
-    query = f"""
-    SELECT c.id, c.document_id, d.title, d.doc_type, c.section,
-           c.chunk_type, c.content, c.department,
-           c.is_approved AS chunk_is_approved,
-           d.version AS document_version,
-           ts_rank_cd(c.fts, ({tsquery_sql})) AS bm25_score,
-           1 - (c.embedding <=> %s) AS vec_score
-    FROM document_chunks c
-    JOIN documents d ON d.id = c.document_id
-    WHERE c.fts @@ ({tsquery_sql})
-      AND c.is_active = true AND c.is_approved = true
-      AND d.is_active = true AND d.is_approved = true
-      AND c.embedding IS NOT NULL
-      {f'AND {rbac_clause}' if rbac_clause else ''}
-    ORDER BY GREATEST(
-        ts_rank_cd(c.fts, ({tsquery_sql})),
-        1 - (c.embedding <=> %s)
-    ) DESC
-    LIMIT %s
+    Delegates to the real serving path ``search_knowledge_base`` (the same
+    function the API uses) with an explicit ``tsquery_sql`` override; there
+    is no duplicated SQL in the benchmark. RBAC stays in the WHERE clause.
     """
-
-    params: list = list(tsquery_params)
-    params.append(query_vector)
-    params.extend(tsquery_params)
-    params.extend(rbac_params)
-    params.extend(tsquery_params)
-    params.extend([query_vector, MAX_RESULTS])
-
-    with conn.cursor() as cur:
-        cur.execute(query, params)
-        rows = cur.fetchall()
-
-    return [
-        SearchCandidate(
-            chunk_id=row["id"], document_id=row["document_id"], title=row["title"],
-            doc_type=row["doc_type"], department=row["department"], section=row["section"],
-            chunk_type=row["chunk_type"], content=row["content"],
-            is_approved=bool(row["chunk_is_approved"]),
-            document_version=int(row["document_version"] or 1),
-            bm25_score=float(row["bm25_score"] or 0.0),
-            vec_score=float(row["vec_score"] or 0.0),
-        )
-        for row in rows
-    ]
+    result = search_knowledge_base(
+        conn, sub_query_texts, user, max_results=MAX_RESULTS, tsquery_sql=tsquery_sql
+    )
+    return result.candidates
 
 
 def _rrf(candidates, apply_rerank, query_text):
@@ -217,12 +146,8 @@ def _gold_chunk(conn, gold_sub: str) -> tuple[int | None, str | None]:
 
 
 def _p95(xs: list[float]) -> float:
-    """Nearest-rank p95 (no extrapolation beyond the observed max)."""
-    if not xs:
-        return 0.0
-    s = sorted(xs)
-    k = max(1, int(np.ceil(0.95 * len(s))))
-    return float(s[k - 1])
+    """p95 via the shared canonical nearest-rank definition."""
+    return percentile_latencies(xs, [95])[95]
 
 
 def run(output_dir: str) -> dict:
@@ -262,7 +187,7 @@ def run(output_dir: str) -> dict:
             sub_query_texts = [sq.expanded for sq in plan.sub_queries] or [question]
             combined = " ".join(sub_query_texts)
             or_sql = build_tsquery_sql(combined)
-            and_sql = or_sql.replace(" || ", " && ")
+            and_sql = build_tsquery_sql(combined, operator=" && ")
 
             serv_t0 = time.perf_counter()
             cands_or = _hybrid_search(conn, sub_query_texts, ADMIN_USER, or_sql)

@@ -7,7 +7,6 @@ and vector search in the same query.
 from __future__ import annotations
 
 import re
-from typing import Sequence
 
 # Strip punctuation and normalize for tsquery
 _TSQUERY_CLEAN_RE = re.compile(r"[^a-zA-Z0-9\s]")
@@ -18,19 +17,21 @@ def _terms(text: str) -> list[str]:
     return cleaned.split()
 
 
-def build_tsquery_sql(text: str, config: str = "english") -> str:
+def build_tsquery_sql(text: str, config: str = "english", operator: str = " || ") -> str:
     """SQL fragment that builds a stemmed, prefix-matching tsquery.
 
     Each term is run through Postgres ``to_tsquery(config, %s)`` so the
     lexeme is stemmed ('veterans' -> 'veteran'), and a ``:*`` prefix in
     the parameter keeps prefix matching ('credit' matches 'credit scoring').
 
-    Returns e.g. ``to_tsquery('english', %s) && to_tsquery('english', %s)``
+    The join ``operator`` defaults to OR (``||``, current serving behaviour)
+    but can be `` && `` to reproduce the pre-fix AND semantics — used by the
+    retrieval benchmark's AND-vs-OR ablation instead of a string hack.
     """
     terms = _terms(text)
     if not terms:
         return "''::tsquery"
-    return " || ".join([f"to_tsquery('{config}', %s)"] * len(terms))
+    return operator.join([f"to_tsquery('{config}', %s)"] * len(terms))
 
 
 def build_tsquery_params(text: str) -> list[str]:

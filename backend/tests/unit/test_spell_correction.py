@@ -15,16 +15,9 @@ Covers:
 
 from __future__ import annotations
 
-import sys
 import time
-from pathlib import Path
 
 import pytest
-
-# Ensure backend/app is importable
-backend_path = Path(__file__).resolve().parent.parent.parent
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
 
 from app.query_processing.spell_correction import correct
 

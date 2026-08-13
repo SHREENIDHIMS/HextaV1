@@ -24,10 +24,18 @@ _PERCENT_RE = re.compile(r"\d[\d,]*(?:\.\d+)?%")
 _ALIAS_PATTERNS: dict[int, re.Pattern] = {}
 
 
+_EMPTY_ALIASES = re.compile(r"$^")  # never matches anything
+
+
 def _alias_pattern(word_count: int) -> re.Pattern:
     pattern = _ALIAS_PATTERNS.get(word_count)
     if pattern is None:
         aliases = [a for a in domain_terms.aliases() if a.count(" ") + 1 == word_count]
+        if not aliases:
+            # An empty alternation (`\b(?:)\b`) matches everywhere; use a
+            # never-matching pattern so the finditer loop is a cheap no-op.
+            _ALIAS_PATTERNS[word_count] = _EMPTY_ALIASES
+            return _EMPTY_ALIASES
         joined = "|".join(re.escape(a) for a in sorted(aliases, key=len, reverse=True))
         pattern = re.compile(rf"\b(?:{joined})\b")
         _ALIAS_PATTERNS[word_count] = pattern

@@ -21,11 +21,18 @@ def measure_latency(func, *args, **kwargs) -> float:
 
 
 def percentile_latencies(latencies: Sequence[float], percentiles: Sequence[float]) -> dict[float, float]:
-    """Compute percentile latencies from a list of millisecond values."""
+    """Compute percentile latencies from a list of millisecond values.
+
+    Single canonical definition shared by every eval tool: nearest-rank
+    percentile (no linear interpolation / no extrapolation beyond the
+    observed max). ``p95`` is therefore a genuine "95% of samples finished
+    at-or-under this latency" value, which is the strict definition the
+    <200ms reranker budget (CLAUDE.md rule #6) is measured against.
+    """
     if len(latencies) == 0:
         return {p: 0.0 for p in percentiles}
-    arr = np.array(latencies)
-    return {p: float(np.percentile(arr, p)) for p in percentiles}
+    s = sorted(latencies)
+    return {p: float(s[max(1, int(np.ceil(p / 100.0 * len(s)))) - 1]) for p in percentiles}
 
 
 def check_reranker_budget(latencies: Sequence[float]) -> bool:

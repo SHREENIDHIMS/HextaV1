@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import logging
+
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from app.audit.audit_logger import AuditLogEntry, log_query
 from app.auth.permissions import require_role
 from app.dependencies import require_auth
 from app.db.postgres.session import acquire
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -65,6 +70,17 @@ async def patch_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+
+    # Every admin mutation is audit-logged (B9) — who changed what, when.
+    log_query(AuditLogEntry(
+        user_id=admin["id"],
+        query=(
+            f"admin.patch_user user_id={user_id} "
+            f"email={updated['email']} is_active={updated['is_active']}"
+        ),
+        outcome="admin.action",
+        response_id="",
+    ))
 
     return {
         "id": updated["id"],
