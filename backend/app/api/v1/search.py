@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.audit.audit_logger import AuditLogEntry, log_query
+from app.auth.cookies import require_csrf
 from app.db.postgres.session import acquire
 from app.dependencies import require_auth
 from app.knowledge_gap.gap_detector import detect_and_log
@@ -52,6 +53,7 @@ class SearchResponse(BaseModel):
 @router.post("/", response_model=SearchResponse)
 async def search(
     request: SearchRequest,
+    _csrf: Annotated[None, Depends(require_csrf)],
     user: Annotated[dict, Depends(require_auth)],
 ) -> SearchResponse:
     """Search the knowledge base for the user's query.
@@ -62,8 +64,8 @@ async def search(
 
     Authentication is required — anonymous callers are denied (401) rather
     than receiving a deny-all (1=0) search against a user with no
-    departments. The frontend stores the JWT client-side and sends it via
-    the Authorization header (see dependency injection notes).
+    departments. Browser sessions authenticate via the httpOnly JWT cookie
+    (see app/auth/cookies.py); scripts/eval use the Bearer header.
     """
     start_ms = time.time() * 1000
 

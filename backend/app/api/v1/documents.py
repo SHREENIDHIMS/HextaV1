@@ -12,6 +12,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
+from app.auth.cookies import require_csrf
 from app.auth.permissions import require_role
 from app.config import settings
 from app.db.postgres.session import acquire
@@ -24,6 +25,7 @@ router = APIRouter()
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
+    _csrf: None = Depends(require_csrf),
     user: dict = Depends(require_auth),
 ) -> dict:
     """Receive a document upload, validate, write to storage/pending/.

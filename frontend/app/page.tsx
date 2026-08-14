@@ -18,7 +18,7 @@ import {
   RelatedQuestions,
 } from "@/components/search";
 import { ApiError, SearchResponse, searchKnowledgeBase } from "@/lib/api-client";
-import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
+import { clearSession, getSession, signOut } from "@/lib/auth";
 import LoginForm from "@/components/auth/LoginForm";
 import { tokens } from "@/lib/tokens";
 
@@ -78,12 +78,18 @@ export default function HomePage() {
 
   // Restore auth + transcript on mount.
   useEffect(() => {
-    const stored = getToken();
-    if (stored && !isTokenExpired(stored)) {
-      setToken(stored);
-    } else {
-      clearToken();
-    }
+    let cancelled = false;
+    void getSession().then((session) => {
+      if (cancelled) return;
+      if (session) {
+        setToken("active");
+      } else {
+        clearSession();
+      }
+      // Wait for the cookie verification so a logged-in user doesn't flash
+      // the login screen on reload.
+      setAuthChecked(true);
+    });
     const saved =
       typeof window !== "undefined"
         ? window.localStorage.getItem(STORAGE_KEY)
@@ -95,7 +101,9 @@ export default function HomePage() {
         /* ignore corrupted transcript */
       }
     }
-    setAuthChecked(true);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Persist transcript on every change (while authenticated).
@@ -118,13 +126,10 @@ export default function HomePage() {
 
   const handleSearch = useCallback(
     async (query: string) => {
-      const activeToken = getToken();
-      if (!activeToken || isTokenExpired(activeToken)) {
-        clearToken();
+      if (!token) {
         setToken(null);
         return;
       }
-      setToken(activeToken);
       setIsLoading(true);
 
       const userMsg: UserMessage = {
@@ -146,14 +151,14 @@ export default function HomePage() {
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
 
       try {
-        const result = await searchKnowledgeBase(query, activeToken);
+        const result = await searchKnowledgeBase(query);
         replaceAssistant(assistantMsg.id, {
           isLoading: false,
           response: result,
         });
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
-          clearToken();
+          clearSession();
           setToken(null);
           replaceAssistant(assistantMsg.id, {
             isLoading: false,
@@ -170,7 +175,7 @@ export default function HomePage() {
         setIsLoading(false);
       }
     },
-    [replaceAssistant]
+    [replaceAssistant, token]
   );
 
   const handleAskRelated = useCallback(
@@ -194,14 +199,16 @@ export default function HomePage() {
     setOpenSources((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const handleLoginSuccess = () => {
-    setToken(getToken());
+    // The login response set the httpOnly cookie; confirm the session so
+    // the cached identity (role/email) is available to sidebar & actions.
+    void getSession().then((s) => setToken(s ? "active" : null));
     setMessages([]);
     if (typeof window !== "undefined")
       window.localStorage.removeItem(STORAGE_KEY);
   };
 
   const handleLogout = () => {
-    clearToken();
+    void signOut();
     setToken(null);
     setMessages([]);
     if (typeof window !== "undefined")
@@ -340,7 +347,6 @@ export default function HomePage() {
                               <AssistantActions
                                 answerText={answerTextFor(msg)}
                                 responseId={msg.response.response_id}
-                                token={token}
                                 userQuery={msg.userQuery}
                                 confidence={msg.response.confidence}
                                 routing={msg.response.routing}

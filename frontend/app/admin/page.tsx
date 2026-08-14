@@ -12,7 +12,7 @@ import {
 
 import Sidebar from "@/components/ui/sidebar";
 import LoginForm from "@/components/auth/LoginForm";
-import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
+import { getSession, clearSession } from "@/lib/auth";
 import { listUsers, patchUser, UserItem, ApiError } from "@/lib/api-client";
 
 // ── Role badge ───────────────────────────────────────────────────────────────
@@ -155,19 +155,25 @@ export default function AdminPage() {
   const [toggling, setToggling] = useState<number | null>(null);
 
   useEffect(() => {
-    const t = getToken();
-    if (t && !isTokenExpired(t)) {
-      setToken(t);
-    } else {
-      clearToken();
-    }
-    setAuthChecked(true);
+    let cancelled = false;
+    void getSession().then((s) => {
+      if (cancelled) return;
+      if (s) {
+        setToken("active");
+      } else {
+        clearSession();
+      }
+      setAuthChecked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    listUsers(token)
+    listUsers()
       .then((r) => setUsers(r.users))
       .catch((err) => {
         if (err instanceof ApiError && err.status === 403) {
@@ -193,8 +199,7 @@ export default function AdminPage() {
     try {
       const updated = await patchUser(
         user.id,
-        { is_active: !user.is_active },
-        token
+        { is_active: !user.is_active }
       );
       setUsers((prev) =>
         prev.map((u) =>
@@ -211,7 +216,7 @@ export default function AdminPage() {
   };
 
   if (!authChecked) return null;
-  if (!token) return <LoginForm onSuccess={() => setToken(getToken())} />;
+  if (!token) return <LoginForm onSuccess={() => void getSession().then((s) => setToken(s ? "active" : null))} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

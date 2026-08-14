@@ -28,7 +28,6 @@ import {
 interface AssistantActionsProps {
   answerText: string;
   responseId: string;
-  token: string | null;
   userQuery?: string;
   confidence?: number;
   routing?: "answer" | "partial" | "no_answer";
@@ -124,7 +123,6 @@ function ActionBtn({
 export default function AssistantActions({
   answerText,
   responseId,
-  token,
   userQuery,
   confidence,
   routing,
@@ -150,11 +148,11 @@ export default function AssistantActions({
 
   const handleRate = useCallback(
     async (next: FeedbackRating) => {
-      if (!token || next === null || rating !== null) return;
+      if (next === null || rating !== null) return;
       setError(null);
       setSubmitting(true);
       try {
-        await submitFeedback({ response_id: responseId, rating: next }, token);
+        await submitFeedback({ response_id: responseId, rating: next });
         setRating(next);
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
@@ -166,7 +164,7 @@ export default function AssistantActions({
         setSubmitting(false);
       }
     },
-    [responseId, token, rating]
+    [responseId, rating]
   );
 
   const handleReadAloud = () => {

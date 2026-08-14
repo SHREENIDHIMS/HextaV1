@@ -5,9 +5,9 @@ Provides:
 - ``get_current_user`` — extracts and verifies JWT, returns the user row
 - ``require_department_access`` — RBAC scope resolver from the JWT
 
-Authentication is enforced backend-side. The frontend (static export) has
-no server-side auth layer — it stores the JWT client-side and sends it
-per-request via the Authorization header.
+Authentication is enforced backend-side. The JWT travels in an httpOnly
+cookie (see app/auth/cookies.py); the Bearer header is still accepted so
+scripts and eval harnesses can authenticate without a cookie jar.
 """
 
 from __future__ import annotations
@@ -15,14 +15,12 @@ from __future__ import annotations
 from typing import Annotated, Optional
 
 import psycopg
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
 
+from app.auth.cookies import get_token_from_request
 from app.auth.jwt_handler import verify_token
 from app.auth.token_blacklist import is_token_revoked
 from app.db.postgres.session import acquire
-
-bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_db() -> psycopg.Connection:
@@ -31,18 +29,15 @@ def get_db() -> psycopg.Connection:
         yield conn
 
 
-async def get_current_user(
-    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(bearer_scheme)] = None,
-) -> dict | None:
-    """Extract and verify JWT from the Authorization header.
+async def get_current_user(request: Request) -> dict | None:
+    """Extract and verify JWT from the auth cookie, then the Bearer header.
 
     Returns the user dict if valid, None if no token provided
     (callers can decide whether auth is required).
     """
-    if credentials is None:
+    token = get_token_from_request(request)
+    if not token:
         return None
-
-    token = credentials.credentials
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(

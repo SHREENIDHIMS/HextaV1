@@ -1,7 +1,31 @@
 // API client — calls FastAPI directly, no BFF proxy.
-// JWT is stored client-side and sent per-request.
+// Authentication uses the httpOnly JWT cookie (matching the backend's
+// Phase 1 transport — see backend/app/auth/cookies.py). All fetches send
+// `credentials: 'include'` so the browser attaches the cookie, and
+// state-changing requests echo the double-submit CSRF cookie via the
+// `X-CSRF-Token` header. The `token` argument is retained for caller
+// compatibility but is no longer required — the cookie is authoritative.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18001/api/v1';
+const DEV_API_URL = 'http://localhost:18001/api/v1';
+// Production is served same-origin by nginx (frontend static export +
+// /api/ proxy), so a relative base keeps cookies working with zero CORS.
+// NEXT_PUBLIC_API_URL still wins when explicitly provided at build time.
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === 'production' ? '/api/v1' : DEV_API_URL);
+
+/** Read the double-submit CSRF cookie so we can echo it in a header.
+ *  The token cookie itself is httpOnly and intentionally unreadable. */
+export function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)hexa_csrf=([^;]*)/);
+  return match ? match[1] : null;
+}
+
+function csrfHeader(): Record<string, string> {
+  const token = getCsrfToken();
+  return token ? { 'X-CSRF-Token': token } : {};
+}
 
 export interface SearchRequest {
   query: string;
@@ -53,6 +77,7 @@ export async function searchKnowledgeBase(
 ): Promise<SearchResponse> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...csrfHeader(),
   };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -61,6 +86,7 @@ export async function searchKnowledgeBase(
   const response = await fetch(`${API_BASE_URL}/search/`, {
     method: 'POST',
     headers,
+    credentials: 'include',
     body: JSON.stringify({ query }),
   });
 
@@ -82,6 +108,7 @@ export async function login(
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
 
@@ -96,12 +123,15 @@ export async function login(
   return response.json();
 }
 
-export async function verifyToken(
-  token: string,
-): Promise<{ valid: boolean; user_id?: number; email?: string }> {
+export async function verifyToken(): Promise<{
+  valid: boolean;
+  user_id?: number;
+  email?: string;
+  role?: string;
+}> {
   const response = await fetch(`${API_BASE_URL}/auth/verify`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -109,6 +139,16 @@ export async function verifyToken(
   }
 
   return response.json();
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      ...csrfHeader(),
+    },
+  });
 }
 
 export interface FeedbackRequest {
@@ -124,14 +164,20 @@ export interface FeedbackResponse {
 
 export async function submitFeedback(
   payload: FeedbackRequest,
-  token: string,
+  token?: string,
 ): Promise<FeedbackResponse> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...csrfHeader(),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}/feedback/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 
@@ -173,14 +219,22 @@ export interface ListDocumentsResponse {
 
 export async function uploadDocument(
   file: File,
-  token: string,
+  token?: string,
 ): Promise<UploadResponse> {
   const form = new FormData();
   form.append('file', file);
 
+  const headers: Record<string, string> = {
+    ...csrfHeader(),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}/documents/upload`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
     body: form,
   });
 
@@ -196,10 +250,16 @@ export async function uploadDocument(
 }
 
 export async function listDocuments(
-  token: string,
+  token?: string,
 ): Promise<ListDocumentsResponse> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}/documents/`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -235,9 +295,12 @@ export interface KnowledgeGap {
   created_at: string;
 }
 
-export async function getAnalyticsStats(token: string): Promise<AnalyticsStats> {
+export async function getAnalyticsStats(token?: string): Promise<AnalyticsStats> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const response = await fetch(`${API_BASE_URL}/analytics/stats`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
@@ -249,9 +312,12 @@ export async function getAnalyticsStats(token: string): Promise<AnalyticsStats> 
   return response.json();
 }
 
-export async function getTopSources(token: string): Promise<{ top_sources: TopSource[] }> {
+export async function getTopSources(token?: string): Promise<{ top_sources: TopSource[] }> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const response = await fetch(`${API_BASE_URL}/analytics/top-sources`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
@@ -263,9 +329,12 @@ export async function getTopSources(token: string): Promise<{ top_sources: TopSo
   return response.json();
 }
 
-export async function getKnowledgeGaps(token: string): Promise<{ knowledge_gaps: KnowledgeGap[] }> {
+export async function getKnowledgeGaps(token?: string): Promise<{ knowledge_gaps: KnowledgeGap[] }> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const response = await fetch(`${API_BASE_URL}/analytics/knowledge-gaps`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
@@ -290,9 +359,12 @@ export interface UserItem {
   created_at: string;
 }
 
-export async function listUsers(token: string): Promise<{ users: UserItem[] }> {
+export async function listUsers(token?: string): Promise<{ users: UserItem[] }> {
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const response = await fetch(`${API_BASE_URL}/admin/users`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
+    credentials: 'include',
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
@@ -307,14 +379,20 @@ export async function listUsers(token: string): Promise<{ users: UserItem[] }> {
 export async function patchUser(
   userId: number,
   patch: { is_active: boolean },
-  token: string,
+  token?: string,
 ): Promise<{ id: number; email: string; is_active: boolean }> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...csrfHeader(),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(patch),
   });
   if (!response.ok) {

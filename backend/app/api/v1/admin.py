@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.audit.audit_logger import AuditLogEntry, log_query
+from app.auth.cookies import require_csrf
 from app.auth.permissions import require_role
 from app.dependencies import require_auth
 from app.db.postgres.session import acquire
@@ -42,6 +43,7 @@ class UserPatchRequest(BaseModel):
 async def patch_user(
     user_id: int,
     body: UserPatchRequest,
+    _csrf: None = Depends(require_csrf),
     admin: dict = Depends(require_auth),
 ) -> dict:
     """Toggle a user's active status. Requires admin role.

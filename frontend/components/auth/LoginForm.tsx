@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import { login } from "@/lib/api-client";
-import { storeToken } from "@/lib/auth";
 import { Orb } from "@/components/ui/orb";
 
 interface LoginFormProps {
@@ -23,8 +22,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     setIsLoading(true);
     setError(null);
     try {
+      // Login sets the httpOnly session cookie server-side; we no longer
+      // store any token in localStorage (Phase 1 hardening).
       const result = await login(email.trim(), password);
-      storeToken(result.access_token);
+      if (!result.access_token) {
+        setError("Login succeeded but returned no session — try again.");
+        return;
+      }
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

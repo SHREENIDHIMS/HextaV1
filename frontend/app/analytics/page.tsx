@@ -20,7 +20,7 @@ import {
 
 import Sidebar from "@/components/ui/sidebar";
 import LoginForm from "@/components/auth/LoginForm";
-import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
+import { clearSession, getSession } from "@/lib/auth";
 import {
   getAnalyticsStats,
   getTopSources,
@@ -103,13 +103,19 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = getToken();
-    if (t && !isTokenExpired(t)) {
-      setToken(t);
-    } else {
-      clearToken();
-    }
-    setAuthChecked(true);
+    let cancelled = false;
+    void getSession().then((s) => {
+      if (cancelled) return;
+      if (s) {
+        setToken("active");
+      } else {
+        clearSession();
+      }
+      setAuthChecked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -118,9 +124,9 @@ export default function AnalyticsPage() {
     setError(null);
 
     Promise.all([
-      getAnalyticsStats(token),
-      getTopSources(token),
-      getKnowledgeGaps(token),
+      getAnalyticsStats(),
+      getTopSources(),
+      getKnowledgeGaps(),
     ])
       .then(([s, src, g]) => {
         setStats(s);
@@ -141,7 +147,7 @@ export default function AnalyticsPage() {
 
   if (!authChecked) return null;
   if (!token)
-    return <LoginForm onSuccess={() => setToken(getToken())} />;
+    return <LoginForm onSuccess={() => void getSession().then((s) => setToken(s ? "active" : null))} />;
 
   // Format date labels: "Aug 5"
   const chartData =

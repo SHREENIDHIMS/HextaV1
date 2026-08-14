@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel
 
+from app.auth.cookies import require_csrf
 from app.dependencies import require_auth
 from app.db.postgres.session import acquire
 
@@ -20,6 +21,7 @@ class FeedbackRequest(BaseModel):
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def submit_feedback(
     request: FeedbackRequest,
+    _csrf: None = Depends(require_csrf),
     user: dict = Depends(require_auth),
 ) -> dict:
     """Submit feedback (thumbs up/down) on a response."""
