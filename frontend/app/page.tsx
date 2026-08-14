@@ -230,6 +230,7 @@ export default function HomePage() {
         onSignOut={handleLogout}
         onNewChat={handleNewChat}
         mobileOpen={isSidebarOpen}
+        onMobileOpen={() => setIsSidebarOpen(true)}
         onMobileClose={() => setIsSidebarOpen(false)}
       />
 

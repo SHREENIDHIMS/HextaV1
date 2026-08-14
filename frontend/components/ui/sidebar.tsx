@@ -207,11 +207,13 @@ export default function Sidebar({
   onSignOut,
   onNewChat,
   mobileOpen = false,
+  onMobileOpen,
   onMobileClose,
 }: {
   onSignOut?: () => void;
   onNewChat?: () => void;
   mobileOpen?: boolean;
+  onMobileOpen?: () => void;
   onMobileClose?: () => void;
 }) {
   const router = useRouter();
@@ -370,7 +372,7 @@ export default function Sidebar({
         variant="outline"
         size="icon"
         className="fixed left-3 top-16 z-50 md:hidden border-border bg-background/80 backdrop-blur-sm"
-        onClick={() => onMobileClose?.()}
+        onClick={() => onMobileOpen?.()}
         aria-label="Open navigation"
         title="Open navigation"
       >

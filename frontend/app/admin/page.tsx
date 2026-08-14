@@ -78,10 +78,18 @@ function ConfirmDialog({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={
+          action === "deactivate"
+            ? "Confirm deactivate user"
+            : "Confirm activate user"
+        }
         className="relative z-10 w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 shadow-2xl"
       >
         <button
           onClick={onCancel}
+          aria-label="Close dialog"
           className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
         >
           <X className="size-4" />

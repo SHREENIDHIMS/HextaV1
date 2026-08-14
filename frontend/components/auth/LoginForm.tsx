@@ -38,7 +38,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-mesh-bg px-4">
+    <div className="dark relative min-h-screen flex items-center justify-center overflow-hidden gradient-mesh-bg px-4">
       {/* Decorative blurred blobs */}
       <div
         aria-hidden
