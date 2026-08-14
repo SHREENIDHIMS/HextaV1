@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 
 import Sidebar from "@/components/ui/sidebar";
 import LoginForm from "@/components/auth/LoginForm";
-import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
-import { verifyToken } from "@/lib/api-client";
+import { getSession } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme/toggle";
 
 export default function SettingsPage() {
@@ -14,22 +13,47 @@ export default function SettingsPage() {
     valid: boolean;
     user_id?: number;
     email?: string;
- } | null>(null);
+    role?: string;
+  } | null>(null);
 
   useEffect(() => {
-    const t = getToken();
-    if (t && !isTokenExpired(t)) setToken(t);
-    else clearToken();
+    let cancelled = false;
+    getSession().then((s) => {
+      if (cancelled) return;
+      if (s) {
+        setToken("active");
+        setMe({
+          valid: true,
+          user_id: s.userId,
+          email: s.email,
+          role: s.role,
+        });
+      } else {
+        setToken(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!token) return;
-    verifyToken(token)
-      .then(setMe)
-      .catch(() => setMe({ valid: false }));
-  }, [token]);
+  const handleLoginSuccess = () => {
+    void getSession().then((s) => {
+      if (s) {
+        setToken("active");
+        setMe({
+          valid: true,
+          user_id: s.userId,
+          email: s.email,
+          role: s.role,
+        });
+      } else {
+        setToken(null);
+      }
+    });
+  };
 
-  if (!token) return <LoginForm onSuccess={() => setToken(getToken())} />;
+  if (!token) return <LoginForm onSuccess={handleLoginSuccess} />;
 
   return (
     <div className="flex h-screen">

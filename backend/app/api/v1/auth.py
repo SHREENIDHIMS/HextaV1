@@ -4,6 +4,11 @@ Password storage: bcrypt via app/auth/passwords.py. Legacy SHA-256
 hashes from the initial dev seed are still verified for a one-time
 transition, but new hashes are always bcrypt.
 
+Token transport: on successful login the JWT is delivered in an httpOnly,
+SameSite=Strict cookie (plus a double-submit CSRF cookie) instead of being
+returned to client-side storage — see app/auth/cookies.py. The Bearer
+header remains accepted for scripts/eval/tests.
+
 Security behavior (Phase 2 hardening):
 - ``/login`` records every attempt to ``auth_events`` and locks the
   account for ``login_lockout_minutes`` after ``login_max_attempts``
@@ -17,13 +22,17 @@ Security behavior (Phase 2 hardening):
 from __future__ import annotations
 
 import logging
-from typing import Annotated
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
+from app.auth.cookies import (
+    clear_auth_cookies,
+    get_token_from_request,
+    require_csrf,
+    set_auth_cookies,
+)
 from app.auth.jwt_handler import create_token, verify_token
 from app.auth.passwords import verify_password
 from app.auth.token_blacklist import is_token_revoked, revoke_token
@@ -33,8 +42,6 @@ from app.db.postgres.session import acquire
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-bearer_scheme = HTTPBearer(auto_error=False)
 
 
 class LoginRequest(BaseModel):
@@ -52,6 +59,7 @@ class TokenVerifyResponse(BaseModel):
     valid: bool
     user_id: int | None = None
     email: str | None = None
+    role: str | None = None
 
 
 def _record_auth_event(conn: psycopg.Connection, email: str, event: str, ip: str | None) -> None:
@@ -86,8 +94,8 @@ def _is_locked_out(conn: psycopg.Connection, email: str) -> bool:
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(request: LoginRequest, http_request: Request) -> LoginResponse:
-    """Authenticate with email + password, return a JWT.
+async def login(request: LoginRequest, response: Response, http_request: Request) -> LoginResponse:
+    """Authenticate with email + password, set the session cookies.
 
     Locked accounts (too many recent failures) are rejected with 429
     without verifying the password, which also stops timing-based
@@ -134,6 +142,8 @@ async def login(request: LoginRequest, http_request: Request) -> LoginResponse:
         email=row["email"],
     )
 
+    set_auth_cookies(response, token)
+
     return LoginResponse(
         access_token=token,
         expires_in=settings.jwt_expiry_minutes * 60,
@@ -142,32 +152,36 @@ async def login(request: LoginRequest, http_request: Request) -> LoginResponse:
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)] = None,
+    request: Request,
+    response: Response,
+    _csrf: None = Depends(require_csrf),
 ) -> None:
-    """Revoke the presented token so it can no longer authenticate.
+    """Revoke the presented token and clear the session cookies.
 
     Idempotent: an already-revoked, expired, or malformed token still
-    yields 204 (there is nothing left to protect). The client should
-    also drop the token locally.
+    yields 204 (there is nothing left to protect). The cookies are
+    cleared so the browser drops the session either way.
     """
-    if credentials is not None:
-        revoke_token(credentials.credentials)
+    token = get_token_from_request(request)
+    if token:
+        revoke_token(token)
+    clear_auth_cookies(response)
 
 
 @router.post("/verify", response_model=TokenVerifyResponse)
-async def verify(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)] = None,
-) -> TokenVerifyResponse:
-    """Verify a bearer JWT token's validity.
+async def verify(request: Request) -> TokenVerifyResponse:
+    """Verify the session token's validity.
 
+    Reads the token from the auth cookie (or Bearer header for scripts).
     Requires the token to be (a) well-formed and unexpired, (b) not
     revoked, and (c) still mapped to an active user. A deactivated
     account's token therefore stops verifying immediately.
     """
-    if credentials is None:
+    token = get_token_from_request(request)
+    if token is None:
         return TokenVerifyResponse(valid=False)
 
-    payload = verify_token(credentials.credentials)
+    payload = verify_token(token)
     if payload is None or is_token_revoked(payload):
         return TokenVerifyResponse(valid=False)
 
@@ -190,4 +204,5 @@ async def verify(
         valid=True,
         user_id=int(sub),
         email=payload.get("email"),
+        role=payload.get("role"),
     )

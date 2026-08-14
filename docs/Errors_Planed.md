@@ -32,6 +32,7 @@ Source audit: `docs/AUDIT_2026-08-10.md` · Created: 2026-08-10 · Status legend
 | X6 | systemd unit requires `.env` the deploy never provisions → first start fails. | `shared-host-infra-scaffold/infra/systemd/hexa-backend.service`, `deploy.yml` | [x] |
 | S4 | Weak bundled dev credentials (`adminpass`, default JWT) — rotate before real deployment. | `shared-host-infra-scaffold/infra/shared/.env`, `backend/.env` | [x] |
 | S5 | Raw audit-logged queries unredacted (PII). | `backend/app/audit/audit_logger.py` | [x] |
+| A7 | JWT stored in localStorage → XSS exfiltrates the token. Moved to httpOnly `SameSite=Strict` cookie + double-submit CSRF on login (Phase 1); Bearer header retained for scripts/eval/tests. | `backend/app/auth/cookies.py`, `backend/app/api/v1/auth.py`, `backend/app/dependencies.py`, `frontend/lib/auth.ts`, `frontend/lib/api-client.ts` | [x] |
 
 ## Phase 3 — Ingestion reliability
 

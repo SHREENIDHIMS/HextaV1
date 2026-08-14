@@ -13,7 +13,7 @@ import {
 
 import Sidebar from "@/components/ui/sidebar";
 import LoginForm from "@/components/auth/LoginForm";
-import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
+import { clearSession, getSession } from "@/lib/auth";
 import {
   DocumentItem,
   listDocuments,
@@ -78,20 +78,26 @@ export default function UploadsPage() {
   const dragCounterRef = useRef(0);
 
   useEffect(() => {
-    const t = getToken();
-    if (t && !isTokenExpired(t)) {
-      setToken(t);
-    } else {
-      clearToken();
-    }
-    setAuthChecked(true);
+    let cancelled = false;
+    void getSession().then((s) => {
+      if (cancelled) return;
+      if (s) {
+        setToken("active");
+      } else {
+        clearSession();
+      }
+      setAuthChecked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fetchDocs = useCallback(() => {
     if (!token) return;
     setDocsLoading(true);
     setDocsError(null);
-    listDocuments(token)
+    listDocuments()
       .then((r) => setDocs(r.documents))
       .catch((err) => {
         if (err instanceof ApiError && err.status === 403) {
@@ -162,7 +168,7 @@ export default function UploadsPage() {
     }, 200);
 
     try {
-      const res = await uploadDocument(selectedFile, token);
+      const res = await uploadDocument(selectedFile);
       clearInterval(progressInterval);
       setUploadProgress(100);
       setTimeout(() => {
@@ -189,7 +195,7 @@ export default function UploadsPage() {
 
   if (!authChecked) return null;
   if (!token)
-    return <LoginForm onSuccess={() => setToken(getToken())} />;
+    return <LoginForm onSuccess={() => void getSession().then((s) => setToken(s ? "active" : null))} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

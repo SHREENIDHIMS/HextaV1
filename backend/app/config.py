@@ -64,6 +64,19 @@ class Settings(BaseSettings):
     # development; non-development environments must enumerate origins.
     cors_origins: str = "*"
 
+    # --- Auth cookie transport (Phase 1) ---
+    # The JWT lives in an httpOnly, SameSite=Strict cookie instead of
+    # localStorage so an injected script cannot read it (XSS → token theft).
+    # `auth_cookie_secure` MUST be True once TLS terminates in front of the
+    # app; over plain http browsers refuse Secure cookies (localhost is an
+    # exception), so the default is off until TLS is in place.
+    auth_cookie_name: str = "hexa_token"
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: str = "strict"
+    # Double-submit CSRF: a JS-readable cookie echoed back via a header.
+    auth_csrf_cookie_name: str = "hexa_csrf"
+    auth_csrf_header: str = "X-CSRF-Token"
+
     # --- Embeddings (query-time, always-on process) ---
     embedding_enabled: bool = True
     embedding_model: str = "BAAI/bge-small-en-v1.5"

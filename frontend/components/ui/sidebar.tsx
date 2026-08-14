@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
+import { getCachedSession, getToken, signOut } from "@/lib/auth";
 import { Orb } from "@/components/ui/orb";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,32 +41,22 @@ function isAdminRole(role: string): boolean {
   return ADMIN_ROLES.has(role);
 }
 
-function getUserInitials(token: string): string {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const email: string = payload.email || payload.sub || "?";
-    return email.slice(0, 2).toUpperCase();
-  } catch {
-    return "HX";
-  }
+// Session identity now comes from the httpOnly-cookie session (fetched
+// via /auth/verify and cached in memory), not from decoding a JWT — the
+// token is unreadable to JS by design.
+
+function getUserInitials(session: { email?: string; userId?: number } | null): string {
+  const email = session?.email;
+  if (email) return email.slice(0, 2).toUpperCase();
+  return "HX";
 }
 
-function getUserEmail(token: string): string {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.email || "user@hexa.local";
-  } catch {
-    return "user@hexa.local";
-  }
+function getUserEmail(session: { email?: string } | null): string {
+  return session?.email || "user@hexa.local";
 }
 
-function getUserRole(token: string): string {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.role || "user";
-  } catch {
-    return "user";
-  }
+function getUserRole(session: { role?: string } | null): string {
+  return session?.role || "user";
 }
 
 function SectionLabel({
@@ -159,15 +149,15 @@ function BrandHeader({
 
 /* ── User profile block with role badge ── */
 function UserProfile({
-  token,
+  session,
   collapsed,
 }: {
-  token: string;
+  session: { email?: string; userId?: number; role?: string } | null;
   collapsed: boolean;
 }) {
-  const initials = getUserInitials(token);
-  const email = getUserEmail(token);
-  const role = getUserRole(token);
+  const initials = getUserInitials(session);
+  const email = getUserEmail(session);
+  const role = getUserRole(session);
 
   const roleColor = role === "admin" ? "text-warning" : "text-primary";
   const roleBg =
@@ -228,7 +218,7 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
 
   const handleSignOut = () => {
-    clearToken();
+    void signOut();
     onSignOut?.();
     router.replace("/");
   };
@@ -240,9 +230,10 @@ export default function Sidebar({
 
   if (typeof window === "undefined") return null;
   const token = getToken();
-  if (!token || isTokenExpired(token)) return null;
+  if (!token) return null;
 
-  const role = getUserRole(token);
+  const session = getCachedSession();
+  const role = getUserRole(session);
   const isAdmin = isAdminRole(role);
   const visibleMain = navMain.filter(
     (item) => !item.adminOnly || isAdmin
@@ -319,7 +310,7 @@ export default function Sidebar({
         <Separator className="opacity-50" />
 
         {/* User Profile */}
-        <UserProfile token={token} collapsed={isCollapsed} />
+        <UserProfile session={session} collapsed={isCollapsed} />
 
         {/* Sign Out */}
         <div className={cn("px-2 pb-3", isCollapsed && "flex flex-col items-center gap-2")}>
