@@ -67,6 +67,9 @@ conn = psycopg.connect(admin_url, user=os.getenv("POSTGRES_SUPERUSER", "admin"),
 conn.autocommit = True
 with conn.cursor() as cur:
     cur.execute(f"ALTER ROLE hexa_app WITH LOGIN PASSWORD {psycopg.sql.Literal(parsed.password)}")
+    # Noisy-neighbor control (V3.3 §2.1) — same cap as the init script so
+    # pre-existing installs get it too. Idempotent.
+    cur.execute("ALTER ROLE hexa_app SET statement_timeout = '10s'")
 conn.close()
 print("hexa_app password provisioned.")
 PY

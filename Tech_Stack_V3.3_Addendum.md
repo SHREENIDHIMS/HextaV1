@@ -23,6 +23,10 @@ launch. **[BEFORE PROD]** = required before real user data/traffic.
 | Rate limiting | No rate limiting is specified anywhere on the FastAPI/Nginx boundary. On a 1 GiB box with a cold-start penalty, a handful of concurrent requests during the idle-to-warm transition could exhaust memory or CPU credits. Add `limit_req` at the Nginx layer per project. | BEFORE PROD |
 | Request size limits | No max body size specified for document upload endpoints. Combined with local filesystem storage and 1 GiB RAM, an unbounded upload is a straightforward DoS vector. Set `client_max_body_size` in Nginx and a matching limit in FastAPI. | BEFORE PROD |
 
+> **DONE (2026-08-13):** Rate limiting (`limit_req`, 10r/s burst 20 on `/api/`, 30r/s on `/health`) and `client_max_body_size 20m` added in `shared-host-infra-scaffold/infra/shared/nginx/conf.d/hexa-assistant.conf`; frontend static nginx (`frontend/nginx.conf`) gets 20r/s burst 40 and `client_max_body_size 1m`. FastAPI limit (`settings.max_upload_bytes`, 20MB) already existed and matches the Nginx cap.
+
+> **DONE (2026-08-13):** Loguru is pinned in `requirements.txt` but unused — all backend logging goes to stdout (captured by systemd journald, which self-rotates). The actual unbounded-growth risk is Docker's json-file driver, so rotation `max-size: 10m / max-file: 3` was added to every container in both `docker-compose.yml` and `infra/shared/docker-compose.yml`.
+
 ---
 
 ## 2. Data Layer — Additions
@@ -40,6 +44,8 @@ databases. This is the right memory optimization but introduces a resource
 | `work_mem` | Keep low (4MB default is usually fine); raise only per-query with `SET LOCAL` if a specific vector/FTS query needs it | Prevents a single complex query (e.g., hybrid BM25+vector) from ballooning memory |
 | `shared_buffers` | Explicitly size (don't leave at Postgres default, which assumes a dedicated host) — typically 15–25% of *available* RAM on a shared box | Postgres defaults assume it owns the machine; on a shared 1 GiB host this needs manual tuning |
 | Per-database resource groups | If contention becomes real, consider `pg_cgroup`-style OS-level cgroup limits per project's connection pool, not just Postgres-level settings | Optional, only needed once actual traffic exists |
+
+> **DONE (2026-08-13):** `statement_timeout` set per-role: `ALTER ROLE hexa_app SET statement_timeout = '10s'` in `01_hexa_assistant.sql` and idempotently in `infra/scripts/migrate_db.sh`; a 30s floor for every other role added to `postgresql.conf`. `max_connections=15`, `work_mem=2MB`, `shared_buffers=32MB` were already set.
 
 ### 2.2 pgvector index strategy — decision, not "or"
 

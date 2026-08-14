@@ -48,6 +48,11 @@ services:
       - "127.0.0.1:15432:5432"   # bind to localhost only — never expose publicly.
     networks:
       - shared_net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
@@ -98,6 +103,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
@@ -120,6 +130,11 @@ services:
     networks:
       - shared_net
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
